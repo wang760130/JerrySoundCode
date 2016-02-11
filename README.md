@@ -1,5 +1,7 @@
 Java 源码分析
 1、基础集合
+	list
+		ArrayList
 2、基础类型
 3、并发
 4、线程

@@ -1,7 +1,5 @@
 package com.jerry.soundcode.list;
 
-import java.util.ListIterator;
-
 public interface List<T> extends Collection<T> {
 	
 	T get(int index);
