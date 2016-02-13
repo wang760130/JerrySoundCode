@@ -205,6 +205,11 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		
 	}
 	
+	@Override
+	public List<T> subList(int fromIndex, int toIndex) {
+		return (this instanceof RandomAccess ? new RandomAccessSubList<T>(this, fromIndex, toIndex) : new SubList<T> (this, fromIndex, toIndex));
+	}
+	
 	public boolean equals(Object o) {
 		if(o == this) 
 			return true;
@@ -303,3 +308,16 @@ class SubList<T> extends AbstractList<T> {
     }
 
 }
+
+class RandomAccessSubList<T> extends SubList<T> implements RandomAccess {
+
+	RandomAccessSubList(AbstractList<T> list, int fromIndex, int toIndex) {
+		super(list, fromIndex, toIndex);
+	}
+	
+	public List<T> subList(int fromIndex, int toIndex) {
+        return new RandomAccessSubList<T>(this, fromIndex, toIndex);
+
+	}
+}
+

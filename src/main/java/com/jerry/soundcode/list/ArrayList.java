@@ -251,12 +251,6 @@ public class ArrayList<T> extends AbstractList<T>
 		size = 0;
 	}
 
-	@Override
-	public List<T> subList(int fromIndex, int toIndex) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	private void writeObejct(ObjectOutputStream s) 
 		throws IOException {
 		int expectedModCount = modCount;
@@ -281,4 +275,5 @@ public class ArrayList<T> extends AbstractList<T>
 			a[i] = s.readObject();
 		}
 	}
+
 }
