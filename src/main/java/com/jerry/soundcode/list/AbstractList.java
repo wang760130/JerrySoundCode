@@ -288,8 +288,7 @@ class SubList<T> extends AbstractList<T> {
 
 	@Override
 	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
+		return size;
 	}
 	
 
