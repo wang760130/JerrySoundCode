@@ -1,11 +1,11 @@
 Java 源码分析
 ===================
-> - 基础集合
-:   list
-	:   ArrayList
-> - 基础类型
-> - 并发
-> - 线程
-> - 线程池
-> - 类加载
-> - Java IO&Java NIO
+1. 基础集合
+* list
+- ArrayList
+2. 基础类型
+3. 并发
+4. 线程
+5. 线程池
+6. 类加载
+7. Java IO&Java NIO
