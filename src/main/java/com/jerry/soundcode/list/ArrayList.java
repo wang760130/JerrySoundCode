@@ -61,14 +61,17 @@ public class ArrayList<T> extends AbstractList<T>
 		return size;
 	}
 	
+	@Override
 	public boolean isEmpty() {
 		return size == 0;
 	}
 	
+	@Override
 	public boolean contains(Object o) {
 		return indexOf(0) >= 0;
 	}
 	
+	@Override
 	public int indexOf(Object o) {
 		if(o == null) {
 			for(int i = 0; i < size; i++) {
@@ -86,6 +89,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return -1;
 	}
 	
+	@Override
 	public int lastIndexOf(Object o) {
 		if(o == null) {
 			for(int i = size - 1; i >= 0; i--) {
@@ -102,6 +106,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return -1;
 	}
 	
+	@Override
 	public Object clone() {
 		try {
 			ArrayList<T> list = (ArrayList<T>) super.clone();
@@ -113,10 +118,12 @@ public class ArrayList<T> extends AbstractList<T>
 		}
 	}
 	
+	@Override
 	public Object[] toArray() {
 		return Arrays.copyOf(elementData, size);
 	}
 	
+	@Override
 	public <T> T[] toArray(T[] a) {
 		if(a.length < size) {
 			return (T[]) Arrays.copyOf(elementData, size);
@@ -135,6 +142,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return (T) elementData[index];
 	}
 
+	@Override
 	public T set(int index, T t) {
 		this.RangeCheck(index);
 		
@@ -143,12 +151,14 @@ public class ArrayList<T> extends AbstractList<T>
 		return oldValue;
 	}
 	
+	@Override
 	public boolean add(T t) {
 		this.ensureCapacity(size + 1);
 		elementData[size++] = t;
 		return true;
 	}
 	
+	@Override
 	public void add(int index, T t) {
 		if (index > size || index < 0)
 		    throw new IndexOutOfBoundsException(
@@ -160,6 +170,7 @@ public class ArrayList<T> extends AbstractList<T>
 		size++;
 	}
 	
+	@Override
 	public T remove(int index) {
 		this.RangeCheck(index);
 		
@@ -173,6 +184,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return oldValue;
 	}
 	
+	@Override
 	public boolean remove(Object o) {
 		if(o == null) {
 			for(int index = 0; index < size; index++) {
@@ -200,6 +212,7 @@ public class ArrayList<T> extends AbstractList<T>
 		elementData[--size] = null;
 	}
 	
+	@Override
 	public boolean addAll(Collection<? extends T> c) {
 		Object[] a = c.toArray();
 		int numNew = a.length;
@@ -209,6 +222,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return numNew != 0;
 	}
 	
+	@Override
 	public boolean addAll(int index, Collection<? extends T> c) {
 		if(index > size || index < 0)
 			throw new IndexOutOfBoundsException(
@@ -244,6 +258,7 @@ public class ArrayList<T> extends AbstractList<T>
 		}
 	}
 	
+	@Override
 	public void clear() {
 		modCount ++;
 		for(int i = 0; i < size; i++)

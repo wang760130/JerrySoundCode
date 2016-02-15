@@ -7,25 +7,31 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 	
 	protected AbstractList() {}
 	
+	@Override
 	public boolean add(T t) {
 		add(size(), t);
 		return true;
 	}
 	
-	abstract public T get(int index);
+	@Override
+	public abstract T get(int index);
 	
+	@Override
 	public T set(int index, T t) {
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
 	public void add(int index, T t) {
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
 	public T remove(int index) {
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
 	public int indexOf(Object o) {
 		ListIterator<T> it = listIterator();
 		if(o == null) {
@@ -44,6 +50,7 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		return -1;
 	}
 	
+	@Override
 	public int lastIndexOf(Object o) {
 		ListIterator<T> it = listIterator(size());
 		if(o == null) {
@@ -62,6 +69,7 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		return -1;
 	}
 	
+	@Override
 	public void clear() {
 		removeRange(0, size());
 	}
@@ -76,14 +84,17 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		return modified;
 	}
 	
+	@Override
 	public Iterator<T> iterator() {
 		return new Itr();
 	}
 	
+	@Override
 	public ListIterator<T> listIterator() {
 		return listIterator(0);
 	}
 	
+	@Override
 	public ListIterator<T> listIterator(final int index) {
 		if(index < 0 || index > size()) {
 			throw new IndexOutOfBoundsException("Index: "+index);
@@ -210,6 +221,7 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		return (this instanceof RandomAccess ? new RandomAccessSubList<T>(this, fromIndex, toIndex) : new SubList<T> (this, fromIndex, toIndex));
 	}
 	
+	@Override
 	public boolean equals(Object o) {
 		if(o == this) 
 			return true;
@@ -231,6 +243,7 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		return !(it1.hasNext() || it2.hasNext());
 	}
 
+	@Override
 	public int hashCode() {
 		int hashCode = 1;
 		Iterator<T> it = iterator();
@@ -278,6 +291,7 @@ class SubList<T> extends AbstractList<T> {
 		return new SubList<T>(this, fromIndex, toIndex);
 	}
 
+	@Override
 	public T set(int index, T t) {
 		rangeCheck(index);
 		checkForComodification();
@@ -315,6 +329,7 @@ class RandomAccessSubList<T> extends SubList<T> implements RandomAccess {
 		super(list, fromIndex, toIndex);
 	}
 	
+	@Override
 	public List<T> subList(int fromIndex, int toIndex) {
         return new RandomAccessSubList<T>(this, fromIndex, toIndex);
 

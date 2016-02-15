@@ -111,6 +111,7 @@ public abstract class AbstractCollection<T> implements Collection<T> {
 		return false;
 	}	
 	
+	@Override
 	public boolean containsAll(Collection<?> c) {
 		Iterator<?> it = c.iterator();
 		while(it.hasNext()) {
@@ -120,6 +121,7 @@ public abstract class AbstractCollection<T> implements Collection<T> {
 		return true;
 	}
 	
+	@Override
 	public boolean addAll(Collection<? extends T> c) {
 		boolean modified = false;
 		Iterator<? extends T> it = c.iterator();
