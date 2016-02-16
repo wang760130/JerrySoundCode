@@ -1,11 +1,11 @@
 Java 源码分析
 ===================
 1. 基础集合
-	list
+	List
 		ArrayList
 		Vector
-		Set
-	map
+	Set
+	Map
 		
 2. 基础类型
 3. 并发

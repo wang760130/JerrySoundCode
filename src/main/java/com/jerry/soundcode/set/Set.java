@@ -1,4 +1,7 @@
-package com.jerry.soundcode.list;
+package com.jerry.soundcode.set;
+
+import com.jerry.soundcode.list.Collection;
+import com.jerry.soundcode.list.Iterator;
 
 public interface Set<T> extends Collection<T> {
 	

@@ -1,7 +1,7 @@
 package com.jerry.soundcode.map;
 
 import com.jerry.soundcode.list.Collection;
-import com.jerry.soundcode.list.Set;
+import com.jerry.soundcode.set.Set;
 
 public interface Map<K, V> {
 	
