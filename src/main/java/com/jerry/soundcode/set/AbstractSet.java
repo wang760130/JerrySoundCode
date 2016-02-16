@@ -10,6 +10,7 @@ public abstract class AbstractSet<T> extends AbstractCollection<T> implements Se
 		
 	}
 	
+	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
 			return true;
@@ -34,6 +35,7 @@ public abstract class AbstractSet<T> extends AbstractCollection<T> implements Se
 		}
 	}
 	
+	@Override
 	public int hashCode() {
 		int h = 0;
 		Iterator<T> it = iterator();
@@ -46,6 +48,7 @@ public abstract class AbstractSet<T> extends AbstractCollection<T> implements Se
 		return h;
 	}
 	
+	@Override
 	public boolean removeAll(Collection<?> c) {
 		boolean modified = false;
 		

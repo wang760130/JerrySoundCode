@@ -25,7 +25,7 @@ public interface Set<T> extends Collection<T> {
 	
 	boolean addAll(Collection<? extends T> c);
 	
-	boolean retain(Collection<?> c);
+	boolean retainAll(Collection<?> c);
 	
 	boolean removeAll(Collection<?> c);
 	
