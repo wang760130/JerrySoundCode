@@ -7,7 +7,12 @@ Java 源码分析
 	Set
 	Map
 		HashMap
-		
+		Hashtable
+		Properties
+		LinkedHashMap
+		IdentityHashMap
+		TreeMap
+		WeakHashMap
 2. 基础类型
 3. 并发
 4. 线程
