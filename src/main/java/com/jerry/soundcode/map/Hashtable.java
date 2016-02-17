@@ -467,6 +467,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return true;
 	}
 	
+	@Override
 	public synchronized int hashCode() {
 		int h = 0;
 		if(count == 0 || loadFactor < 0) {
