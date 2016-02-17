@@ -6,6 +6,7 @@ Java 源码分析
 		Vector
 	Set
 	Map
+		HashMap
 		
 2. 基础类型
 3. 并发
