@@ -5,6 +5,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.StreamCorruptedException;
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
 
 import com.jerry.soundcode.list.AbstractCollection;
 import com.jerry.soundcode.list.Collection;
@@ -75,7 +77,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 	
 	@Override
 	public synchronized Enumeration<V> emelemts() {
-		return this.<V>getEnumeration(VLAUES);
+		return this.<V>getEnumeration(VALUES);
 	}
 	
 	public synchronized boolean contains(Object value) {
@@ -414,7 +416,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 
 		@Override
 		public Iterator<V> iterator() {
-			return getIterator(VLAUES);
+			return getIterator(VALUES);
 		}
 
 		@Override
@@ -607,54 +609,11 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 
-	private static Enumeration emptyEnumerator = new EmptyEnumerator();
-	private static Iterator emptyIterator = new EmptyIterator();
-	
-	private static class EmptyEnumerator implements Enumeration<Object> {
-
-		@Override
-		public boolean hasMoreElements() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public Object nextElement() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-	}
-	
-	private static class EmptyIterator implements Iterator<Object> {
-
-		@Override
-		public boolean hasNext() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public Object next() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public void remove() {
-			// TODO Auto-generated method stub
-			
-		}
-		
-	}
-	
-	
-	
 	private static final int KEYS = 0;
-	private static final int VLAUES = 1;
+	private static final int VALUES = 1;
 	private static final int ENTRIES = 2;
 	
-	private class Enumerator<T> implements Enumeration<T>, Iterator<T> {
+private class Enumerator<T> implements Enumeration<T>, Iterator<T> {
 		
 		Entry[] table = Hashtable.this.table;
 		int index = table.length;
@@ -672,37 +631,132 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 		
 		@Override
+		public boolean hasMoreElements() {
+			Entry<K, V> e = entry;
+			int i = index;
+			Entry[] t = table;
+			 
+			while(e == null && i > 0) {
+				e = t[--i];
+			}
+			entry = e;
+			index = i;
+			return e != null;
+		}
+		
+		@Override
+		public T nextElement() {
+			Entry<K, V> et = entry;
+			int i = index;
+			Entry[] t = table;
+			
+			while(et == null && i > 0) {
+				et = t[--i];
+			}
+			entry = et;
+			index = i;
+			
+			if(et != null) {
+				Entry<K, V> e = lastReturned = entry;
+				entry = e.next;
+				return type == KEYS ? (T)e.key : (type == VALUES ? (T)e.value : (T)e);
+			}
+			throw new NoSuchElementException("Hashtable Enumerator");
+		}
+		
+		@Override
 		public boolean hasNext() {
-			// TODO Auto-generated method stub
-			return false;
+			return hasMoreElements();
 		}
 
 		@Override
 		public T next() {
-			// TODO Auto-generated method stub
-			return null;
+			if(modCount != expectedModCount) {
+				throw new ConcurrentModificationException();
+			}
+			return nextElement();
 		}
 
 		@Override
 		public void remove() {
-			// TODO Auto-generated method stub
+			if(!iterator) {
+				throw new UnsupportedOperationException();
+			}
+			
+			if(lastReturned == null) {
+				throw new IllegalStateException("Hashtable Enumerator");
+			}
+			
+			if(modCount != expectedModCount) {
+				throw new ConcurrentModificationException();
+			}
+			
+			synchronized (Hashtable.this) {
+				Entry[] tab = Hashtable.this.table;
+				int index = (lastReturned.hash & 0x7FFFFFFF) % tab.length;
+				
+				for(Entry<K, V> e = tab[index], prev = null; e != null; prev = e, e = e.next) {
+					if(e == lastReturned) {
+						modCount ++;
+						expectedModCount ++;
+						if(prev == null) {
+							tab[index] = e.next;
+						} else {
+							prev.next = e.next;
+						}
+						
+						count --;
+						lastReturned = null;
+						return ;
+					}
+				} 
+				throw new ConcurrentModificationException();
+			}
+		}
+	}
+	
+	private static Enumeration emptyEnumerator = new EmptyEnumerator();
+	private static Iterator emptyIterator = new EmptyIterator();
+	
+	private static class EmptyEnumerator implements Enumeration<Object> {
+		
+		EmptyEnumerator() {
 			
 		}
-
+	
 		@Override
 		public boolean hasMoreElements() {
-			// TODO Auto-generated method stub
 			return false;
 		}
 
 		@Override
-		public T nextElement() {
-			// TODO Auto-generated method stub
-			return null;
+		public Object nextElement() {
+			throw new NoSuchElementException("Hashtable Enumerator");
 		}
 		
 	}
 	
-	
+	private static class EmptyIterator implements Iterator<Object> {
+		
+		EmptyIterator() {
+			
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return false;
+		}
 
+		@Override
+		public Object next() {
+			 throw new NoSuchElementException("Hashtable Iterator");
+		}
+
+		@Override
+		public void remove() {
+			 throw new NoSuchElementException("Hashtable Iterator");
+		}
+		
+	}
+	
 }
