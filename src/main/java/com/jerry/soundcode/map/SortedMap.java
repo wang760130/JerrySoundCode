@@ -1,8 +1,7 @@
 package com.jerry.soundcode.map;
 
-import java.util.Comparator;
-
 import com.jerry.soundcode.list.Collection;
+import com.jerry.soundcode.list.Comparator;
 import com.jerry.soundcode.set.Set;
 
 public interface SortedMap<K, V> extends Map<K, V> {

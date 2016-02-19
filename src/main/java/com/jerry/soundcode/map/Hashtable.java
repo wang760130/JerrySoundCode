@@ -227,6 +227,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		count = 0;
 	}
 	
+	@Override
 	public synchronized Object clone() {
 		try {
 			Hashtable<K, V> t = (Hashtable<K, V>) super.clone();
@@ -245,6 +246,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 	
+	@Override
 	public synchronized String toString() {
 		int max = size() - 1;
 		if (max == -1)
@@ -436,6 +438,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		
 	}
 	
+	@Override
 	public synchronized boolean equals(Object o) {
 		if(o == this) {
 			return true;
@@ -613,7 +616,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 	private static final int VALUES = 1;
 	private static final int ENTRIES = 2;
 	
-private class Enumerator<T> implements Enumeration<T>, Iterator<T> {
+	private class Enumerator<T> implements Enumeration<T>, Iterator<T> {
 		
 		Entry[] table = Hashtable.this.table;
 		int index = table.length;
