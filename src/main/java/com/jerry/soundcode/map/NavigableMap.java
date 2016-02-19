@@ -1,5 +1,7 @@
 package com.jerry.soundcode.map;
 
+import com.jerry.soundcode.set.NavigableSet;
+
 public interface NavigableMap<K, V> extends SortedMap<K, V> {
 	
 	Map.Entry<K, V> lowerEntry(K key);
@@ -28,6 +30,19 @@ public interface NavigableMap<K, V> extends SortedMap<K, V> {
 	
 	NavigableMap<K, V> descendingMap();
 	
+	NavigableSet<K> navigableKeySet();
 	
+	NavigableSet<K> descendingKeySet();
  	
+	NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive);
+	
+	NavigableMap<K, V> headMap(K toKey, boolean inclusive);
+	
+	NavigableMap<K, V> tailMap(K fromKey, boolean inclusive);
+	
+	SortedMap<K, V> subMap(K fromKey, K toKey);
+	
+	SortedMap<K, V> headMap(K toKey);
+	
+	SortedMap<K, V> tailMap(K fromKey);
 }
