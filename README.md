@@ -9,6 +9,7 @@ Java 源码分析
 	Set
 		HashSet
 		TreeSet
+		LinkedHashSet
 	Map
 		HashMap
 		Hashtable
