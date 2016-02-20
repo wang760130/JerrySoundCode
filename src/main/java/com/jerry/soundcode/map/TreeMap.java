@@ -2,6 +2,7 @@ package com.jerry.soundcode.map;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.channels.IllegalSelectorException;
 import java.util.ConcurrentModificationException;
@@ -859,71 +860,6 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
-	private void buildFromSorted(int size, Iterator it, ObjectInputStream is, V defaultVal) throws IOException, ClassNotFoundException {
-		this.size = size;
-		root = buildFromSorted(0, 0, size - 1, computeRedLevel(size), it, is, defaultVal);
-	}
-	
-	private final Entry<K, V> buildFromSorted(int level, int lo, int hi, 
-			int redLevel, Iterator it, ObjectInputStream is, V defaultVal) throws IOException, ClassNotFoundException {
-		if(hi < lo) {
-			return null;
-		}
-		
-		int mid = (lo + hi) / 2;
-		
-		Entry<K, V> left = null;
-		
-		if(lo < mid) {
-			left = buildFromSorted(level + 1, lo, mid - 1, redLevel, it, is, defaultVal);
-		}
-		
-		K key;
-		V value;
-		if(it != null) {
-			if(defaultVal == null) {
-				Map.Entry<K, V> entry = (Map.Entry<K, V>) it.next();
-				key = entry.getKey();
-				value = entry.getValue();
-			} else {
-				key = (K) it.next();
-				value = defaultVal;
-			}
-		} else {
-			key = (K) is.readObject();
-			value = (defaultVal != null ? defaultVal : (V) is.readObject());
-		}
-		
-		Entry<K, V> middle = new Entry<K, V> (key, value, null);
-		
-		if(level == redLevel) {
-			middle.color = RED;
-		}
-	
-		if(left != null) {
-			middle.left = left;
-			left.parent = middle;
-		}
-		
-		if(mid < hi) {
-			Entry<K, V> right = buildFromSorted(level + 1, mid + 1, hi, redLevel, it, is, defaultVal);
-			middle.right = right;
-			right.parent = middle;
-		}
-		
-		return middle;
-	}
-	 
-	private static int computeRedLevel(int sz) {
-		int level = 0;
-		for(int m = sz - 1; m >= 0; m = m / 2 -1) {
-			level ++;
-		}
-		return level;
-	}
-	
-	
-	
 	class EntrySet extends AbstractSet<Map.Entry<K,V>> {
 
 		@Override
@@ -984,7 +920,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 
 		@Override
-		public T lowet(T t) {
+		public T lower(T t) {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -1061,6 +997,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			// TODO Auto-generated method stub
 			return null;
 		}
+
 	}
 	
 	static abstract class NavigableSubMap<K, V> extends AbstractMap<K, V> 
@@ -1681,5 +1618,99 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		public K next() {
 			return prevEntry().key;
 		}
+	}
+	
+	private void writeObject(ObjectOutputStream s) throws IOException, ClassNotFoundException {
+		s.defaultWriteObject();
+		s.writeInt(size);
+		
+		for(Iterator<Map.Entry<K, V>> it = entrySet().iterator(); it.hasNext();) {
+			Map.Entry<K, V> e = it.next();
+			s.writeObject(e.getKey());
+			s.writeObject(e.getValue());
+		}
+	}
+	
+	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		
+		int size = s.readInt();
+		
+		buildFromSorted(size, null, s, null);
+	}
+	
+	public void readTreeSet(int size, ObjectInputStream s, V defaultVal) throws IOException, ClassNotFoundException {
+		buildFromSorted(size, null, s, defaultVal);
+	}
+	
+	public void addAllForTreeSet(SortedSet<? extends K> set, V defaultVal) {
+		try {
+			buildFromSorted(set.size(), set.iterator(), null, defaultVal);
+		} catch (IOException e) {
+		} catch (ClassNotFoundException e) {
+		}
+	}
+	
+	private void buildFromSorted(int size, Iterator it, ObjectInputStream is, V defaultVal) throws IOException, ClassNotFoundException {
+		this.size = size;
+		root = buildFromSorted(0, 0, size - 1, computeRedLevel(size), it, is, defaultVal);
+	}
+	
+	private final Entry<K, V> buildFromSorted(int level, int lo, int hi, 
+			int redLevel, Iterator it, ObjectInputStream is, V defaultVal) throws IOException, ClassNotFoundException {
+		if(hi < lo) {
+			return null;
+		}
+		
+		int mid = (lo + hi) / 2;
+		
+		Entry<K, V> left = null;
+		
+		if(lo < mid) {
+			left = buildFromSorted(level + 1, lo, mid - 1, redLevel, it, is, defaultVal);
+		}
+		
+		K key;
+		V value;
+		if(it != null) {
+			if(defaultVal == null) {
+				Map.Entry<K, V> entry = (Map.Entry<K, V>) it.next();
+				key = entry.getKey();
+				value = entry.getValue();
+			} else {
+				key = (K) it.next();
+				value = defaultVal;
+			}
+		} else {
+			key = (K) is.readObject();
+			value = (defaultVal != null ? defaultVal : (V) is.readObject());
+		}
+		
+		Entry<K, V> middle = new Entry<K, V> (key, value, null);
+		
+		if(level == redLevel) {
+			middle.color = RED;
+		}
+	
+		if(left != null) {
+			middle.left = left;
+			left.parent = middle;
+		}
+		
+		if(mid < hi) {
+			Entry<K, V> right = buildFromSorted(level + 1, mid + 1, hi, redLevel, it, is, defaultVal);
+			middle.right = right;
+			right.parent = middle;
+		}
+		
+		return middle;
+	}
+	
+	private static int computeRedLevel(int sz) {
+		int level = 0;
+		for(int m = sz - 1; m >= 0; m = m / 2 -1) {
+			level ++;
+		}
+		return level;
 	}
 }
