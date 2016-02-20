@@ -32,8 +32,8 @@ public class HashSet<T> extends AbstractSet<T>
 		map = new HashMap<T, Object>(initialCapacity);
 	}
 	
-	HashSet(int initailCapacity, float loatFactor, boolean dummy) {
-		new LinkedHashMap<T, Object>(initailCapacity, loatFactor);
+	HashSet(int initialCapacity, float loadFactor, boolean dummy) {
+		new LinkedHashMap<T, Object>(initialCapacity, loadFactor);
 	}
 	
 	@Override
