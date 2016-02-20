@@ -4,7 +4,11 @@ Java 源码分析
 	List
 		ArrayList
 		Vector
+		LinkedList
+		Stack
 	Set
+		HashSet
+		TreeSet
 	Map
 		HashMap
 		Hashtable
