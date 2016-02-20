@@ -690,11 +690,11 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
-	int capacity() {
+	public int capacity() {
 		return table.length;
 	}
 	
-	float loadFactor() {
+	public float loadFactor() {
 		return loadFactor;
 	}
 }
