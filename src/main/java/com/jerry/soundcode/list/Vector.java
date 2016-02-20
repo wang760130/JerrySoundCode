@@ -170,6 +170,13 @@ public class Vector<T> extends AbstractList<T>
 		}
 		return -1;
 	}
+	
+	public synchronized T elementAt(int index) {
+		if(index >= elementCount) {
+			throw new ArrayIndexOutOfBoundsException(index + " >= " + elementCount);
+		}
+		return (T) elementData[index];
+	}
 
 	public synchronized T firstElement() {
 		if(elementCount == 0) {
