@@ -179,6 +179,7 @@ public abstract class AtomicIntegerFieldUpdater<T> {
 			}
 			return unsafe.getIntVolatile(obj, offset);
 		}
+		
 		private void ensureProtectAccess(T obj) {
 			if(cclass.isInstance(obj)) {
 				return ;
@@ -188,7 +189,6 @@ public abstract class AtomicIntegerFieldUpdater<T> {
 					new IllegalAccessException("Class " +  cclass.getName() + " can not access a protected member of class " +
 	                    tclass.getName() + " using an instance of " + obj.getClass().getName()) );
 		}
-
 	
 	}
 }
