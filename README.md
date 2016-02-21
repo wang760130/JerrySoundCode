@@ -50,4 +50,7 @@ Java 源码分析
 
 相关技术博客
 ================================
+Java并发包源码解析
 http://www.iteye.com/blogs/subjects/JUC_SCA?page=2
+OpenJDK源代码阅读
+http://blog.csdn.net/column/details/openjdk-src-reading.html
