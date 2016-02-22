@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.nio.channels.IllegalSelectorException;
 import java.util.ConcurrentModificationException;
 import java.util.NoSuchElementException;
+import java.util.TreeSet;
 
 import com.jerry.soundcode.list.AbstractCollection;
 import com.jerry.soundcode.list.Collection;
@@ -477,6 +478,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return new AscendingSubMap(this, false, fromKey, inclusive, true, null, true);
 	}
 	
+	@Override
 	public final SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return subMap(fromKey, true, toKey, false);
 	}
@@ -495,17 +497,214 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 
 		@Override
 		public Iterator<V> iterator() {
-			return null;
-//			return new Value;
+			return (Iterator<V>) new ValueIterator(getFirstEntry());
 		}
 
 		@Override
 		public int size() {
-			// TODO Auto-generated method stub
-			return 0;
+			return TreeMap.this.size();
 		}
 		
+		@Override
+		public boolean contains(Object o) {
+			return TreeMap.this.containsValue(o);
+		}
+		
+		@Override
+		public boolean remove(Object o) {
+			for(Entry<K, V> e = getFirstEntry(); e != null; e = successor(e)) {
+				if(valEquals(e.getValue(), o)) {
+					deleteEntry(e);
+					return true;
+				}
+			}
+			return false;
+		}
 	}
+	
+	class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+
+		@Override
+		public Iterator<Map.Entry<K, V>> iterator() {
+			return new EntryIterator(getFirstEntry());
+		}
+		
+		@Override
+		public boolean contains(Object o) {
+			if(! (o instanceof Map.Entry)) {
+				return false;
+			}
+			
+			Map.Entry<K, V> entry = (Map.Entry<K, V>) o;
+			V value = entry.getValue();
+			Entry<K, V> p = getEntry(entry.getKey());
+			return p != null && valEquals(p.getValue(), value);
+		}
+
+		@Override
+		public boolean remove(Object o) {
+			if(!(o instanceof Map.Entry)) {
+				return false;
+			}
+			Map.Entry<K, V> entry = (Map.Entry<K, V>) o;
+			V value = entry.getValue();
+			Entry<K, V> p = getEntry(entry.getKey());
+			if(p != null && valEquals(p.getValue(), value)) {
+				deleteEntry(p);
+				return true;
+			}
+			return false;
+		}
+		
+		@Override
+		public int size() {
+			return TreeMap.this.size();
+		}
+		
+		@Override
+		public void clear() {
+			TreeMap.this.clear();
+		}
+	}
+	
+	Iterator<K> keyIterator() {
+		return new KeyIterator(null, getFirstEntry());
+	}
+	
+	Iterator<K> descendingKeyIterator() {
+		return new DescendingKeyIterator(getLastEntry());
+	}
+	
+	static final class KeySet<T> extends AbstractSet<T> implements NavigableSet<T> {
+		
+		private final NavigableMap<T, Object> m;
+		
+		KeySet(NavigableMap<T, Object > map) { m = map; }
+		
+		@Override
+		public Iterator<T> iterator() {
+			if(m instanceof TreeMap) {
+				return ((TreeMap<T,Object>) m).keyIterator();
+			} else {
+				return (Iterator<T>)(((TreeMap.NavigableSubMap)m).keyIterator());
+			}
+		}
+		
+		@Override
+		public Iterator<T> descendingIterator() {
+			if(m instanceof TreeMap) {
+				return ((TreeMap<T, Object>) m).keyIterator();
+			} else {
+				return (Iterator<T>)(((TreeMap.NavigableSubMap)m).keyIterator()); 
+			}
+
+		}
+
+		public int size() {
+			return m.size();
+		}
+		
+		public boolean isEmpty() {
+			return m.isEmpty();
+		}
+		
+		public boolean contains(Object o) {
+			return m.containsKey(o);
+		}
+		
+		public void clear() {
+			m.clear();
+		}
+		
+		public T lower(T t) {
+			return m.lowerKey(t);
+		}
+		
+		public T floor(T t) {
+			return m.floorKey(t);
+		}
+		
+		public T ceiling(T t) {
+			return m.ceilingKey(t);
+		}
+		
+		public T higher(T t) {
+			return m.higherKey(t);
+		}
+		
+		public T first() {
+			return m.firstKey();
+		}
+		
+		public T last() {
+			return m.lastKey();
+		}
+		
+		public Comparator<? super T> comparator() {
+			return m.comparator();
+		}
+		
+		public T pollFirst() {
+			Map.Entry<T, Object> e = m.pollFirstEntry();
+			return e == null ? null : e.getKey();
+		}
+		
+		public T pollLast() {
+			Map.Entry<T, Object> e = m.pollLastEntry();
+			return e == null ? null : e.getKey();
+		}
+		
+		public boolean remove(Object o) {
+			int oldSize = size();
+			m.remove(o);
+			return size() != oldSize;
+		}
+		
+		public NavigableSet<T> subSet(T fromElement, boolean fromInclusive,
+				T toElement, boolean toInclusive) {
+			// TODO
+			return null;
+		}
+		
+		public NavigableSet<T> headSet(T toElement, boolean inclusive) {
+			// TODO
+			return null;
+		}
+
+		@Override
+		public SortedSet<T> tailSet(T fromElement) {
+			// TODO
+			return null;
+		}
+
+		@Override
+		public NavigableSet<T> descendingSet() {
+			// TODO
+			return null;
+		}
+
+		@Override
+		public NavigableSet<T> tailSet(T fromElement, boolean inclusive) {
+			// TODO
+			return null;
+		}
+
+		@Override
+		public SortedSet<T> subSet(T fromElement, T toElement) {
+			// TODO
+			return null;
+		}
+
+		@Override
+		public SortedSet<T> headSet(T toElement) {
+			// TODO
+			return null;
+		}
+		
+		
+	}
+	
+	
 	
 	private static <K, V> boolean colorOf(Entry<K, V> p) {
 		return (p == null ? BLACK : p.color); 
@@ -858,146 +1057,6 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		public String toString() {
 			return key + "=" + value;
 		}
-	}
-	
-	class EntrySet extends AbstractSet<Map.Entry<K,V>> {
-
-		@Override
-		public Iterator<Map.Entry<K, V>> iterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public int size() {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-		
-	}
-	
-	static final class KeySet<T> extends AbstractSet<T> implements NavigableSet<T> {
-
-		private final NavigableMap<T, Object> m;
-		KeySet(NavigableMap<T, Object> map) {
-			m = map;
-		}
-		
-		@Override
-		public Iterator<T> iterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public int size() {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public Comparator<? super T> comparator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedSet<T> tailSet(T fromElement) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T first() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T last() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T lower(T t) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T floor(T t) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T ceiling(T t) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T higher(T t) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T pollFirst() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T pollLast() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<T> descendingSet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Iterator<T> descendingIterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<T> subSet(T fromElement, boolean fromInclusive,
-				T toElement, boolean toInclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<T> headSet(T toElement, boolean inclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<T> tailSet(T fromElement, boolean inclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedSet<T> subSet(T fromElement, T toElement) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedSet<T> headSet(T toElement) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
 	}
 	
 	static abstract class NavigableSubMap<K, V> extends AbstractMap<K, V> 
@@ -1606,6 +1665,19 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		public K next() {
 			return nextEntry().key;
 		}
+	}
+	
+	final class KeyIterator extends PrivateEntryIterator<K> {
+
+		KeyIterator(TreeMap<K, V> treeMap, Entry<K, V> first) {
+			super(first);
+		}
+
+		@Override
+		public K next() {
+			return nextEntry().key;
+		}
+		
 	}
 	
 	final class DescendingKeyIterator extends PrivateEntryIterator<K> {
