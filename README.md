@@ -1,6 +1,8 @@
 Java 源码分析
 ===================
 1. 基础集合
+	Arrays
+	Collections
 	List
 		ArrayList
 		Vector
@@ -44,6 +46,7 @@ Java 源码分析
 		AtomicStampedReference
 4. 线程
 	Runnable
+	Thread
 5. 线程池
 6. 类加载
 7. Java IO&Java NIO
