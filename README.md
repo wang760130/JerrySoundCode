@@ -60,3 +60,5 @@ Java并发包源码解析
 http://www.iteye.com/blogs/subjects/JUC_SCA?page=2
 OpenJDK源代码阅读
 http://blog.csdn.net/column/details/openjdk-src-reading.html
+java中queue的使用
+http://www.cnblogs.com/end/archive/2012/10/25/2738493.html
