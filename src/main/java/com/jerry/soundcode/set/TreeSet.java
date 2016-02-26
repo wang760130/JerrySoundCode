@@ -21,7 +21,7 @@ public class TreeSet<T> extends AbstractSet<T>
 	
 	private static final Object PERSENT = new Object();
 	
-	TreeSet(NavigableMap<T, Object> map) {
+	public TreeSet(NavigableMap<T, Object> map) {
 		this.map = map;
 	}
 	
