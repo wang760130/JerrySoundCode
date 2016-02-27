@@ -142,6 +142,99 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		}
 	}
 	
+	private void doReleaseShared() {
+		for(;;) {
+			Node h = head;
+			if(h != null && h != tail) {
+				int ws = h.waitStatus;
+				if(ws == Node.SIGNAL) {
+					if(!compareAndSetWaitStatus(h, Node.SIGNAL,0)) {
+						continue;
+					}
+					unparkSuccessor(h);
+				} else if(ws == 0 && !compareAndSetWaitStatus(h, 0, Node.PROPAGATE)) {
+					continue;
+				}
+			}
+			
+			if(h == head) {
+				break;
+			}
+		}
+	}
+	
+	private void setHeadAndPropageate(Node node, int propagate) {
+		Node h = head;
+		setHead(node);
+		
+		if(propagate > 0 || h == null || h.waitStatus < 0) {
+			Node s = node.next;
+			if(s == null || s.isShared()) {
+				doReleaseShared();
+			}
+		}
+	}
+	
+	private void cancelAcquire(Node node) {
+		if(node == null) {
+			return ;
+		}
+		
+		node.thread = null;
+		
+		Node pred = node.prev;
+		while(pred.waitStatus > 0) {
+			node.prev = pred = pred.prev;
+			Node predNext = pred.next;
+			node.waitStatus = Node.CANCELLED;
+			
+			if(node == tail && compareAndSetTail(node, pred)) {
+				compareAndSetNext(pred, predNext, null);
+			} else {
+				int ws;
+				if(pred != head && ((ws = pred.waitStatus) == Node.SIGNAL ||
+						(ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) && 
+						pred.thread != null) {
+					Node next = node.next;
+					if(next != null && next.waitStatus <= 0) {
+						compareAndSetNext(pred, predNext, next);
+					} else {
+						unparkSuccessor(node);
+					}
+				}
+				
+				node.next = node;
+			}
+		}
+	}
+	
+	private static boolean shouldParAfterFailedAcquire(Node pred, Node node) {
+		int ws = pred.waitStatus;
+		
+		if(ws == Node.SIGNAL) {
+			return true;
+		} 
+		
+		if(ws > 0) {
+			do {
+				node.prev = pred = pred.prev;
+			} while (pred.waitStatus > 0);
+			pred.next = node;
+		} else {
+			compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+		}
+		return false;
+	}
+	
+	private static void selfInterrupt() {
+		Thread.currentThread().interrupt();
+	}
+	
+	private final boolean parkAndCheckInterrupt() {
+		LockSupport.park(this);
+		return Thread.interrupted();
+	}
+	
 	private static final Unsafe unsafe = Unsafe.getUnsafe();
 	private static final long stateOffset;
 	private static final long headOffset;
@@ -174,7 +267,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return unsafe.compareAndSwapInt(node, waitStatusOffset, expect, update);
 	}
 	
-	private final static boolean compareAndSetNex(Node node, Node expect, Node update) {
+	private final static boolean compareAndSetNext(Node node, Node expect, Node update) {
 		return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
 	}
 	
