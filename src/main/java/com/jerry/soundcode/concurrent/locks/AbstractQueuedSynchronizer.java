@@ -722,23 +722,153 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		
 		public ConditionObject() {}
 		
+		private Node addConditionWaiter() {
+			Node t = lastWaiter;
+			if(t != null && t.waitStatus != Node.CANCELLED) {
+				unlinkCancelledWaiters();
+				t = lastWaiter;
+			}
+			
+			Node node = new Node(Thread.currentThread(), Node.CONDITION);
+			
+			if(t == null) {
+				firstWaiter = node;
+			} else {
+				t.nextWaiter = node;
+			}
+			lastWaiter = node;
+			return node;
+		}
 		
+		private void doSingnal(Node first) {
+			do {
+				if((firstWaiter = first.nextWaiter) == null) {
+					lastWaiter = null;
+				}
+				first.nextWaiter = null;
+			} while(!transferForSignal(first) && (first = firstWaiter) != null);
+		}
+		
+		private void doSignalAll(Node first) {
+			lastWaiter = firstWaiter = null;
+			do {
+				Node next = first.nextWaiter;
+				first.nextWaiter = null;
+				transferForSignal(first);
+				first = next;
+			} while(first != null);
+		}
+		
+		private void unlinkCancelledWaiters() {
+			Node t = firstWaiter;
+			Node trail = null;
+			while(t != null) {
+				Node next = t.nextWaiter;
+				if(t.waitStatus != Node.CONDITION) {
+					t.nextWaiter = null;
+					if(trail == null) {
+						firstWaiter = next;
+					} else {
+						trail.nextWaiter = next;
+					}
+					if(next == null) {
+						lastWaiter = trail;
+					}
+				} else {
+					trail = t;
+				}
+				t = next;
+			}
+		}
+
+		@Override
+		public void signal() {
+			if(!isHeldExclusively()) {
+				throw new IllegalMonitorStateException();
+			}
+			Node first = firstWaiter;
+			if(first != null) {
+				doSingnal(first);
+			}
+		}
+
+		@Override
+		public void signalAll() {
+			if(!isHeldExclusively()) {
+				throw new IllegalMonitorStateException();
+			}
+			Node first = firstWaiter;
+			if(first != null) {
+				doSingnal(first);
+			}
+		}
+		
+		@Override
+		public final void awaitUninterruptibly() {
+			Node node = addConditionWaiter();
+			int savedState = fullyRelease(node);
+			boolean interrupted = false;
+			while(!isOnSysncQueue(node)) {
+				LockSupport.park(this);
+				if(Thread.interrupted()) {
+					interrupted = true;
+				}
+			}
+			if(acquireQueued(node, savedState) || interrupted) {
+				selfInterrupt();
+			}
+		}
+		
+		private static final int REINTERRUPT = 1;
+		private static final int THROW_IE = -1;
+
+		private int checkInterruptWhileWating(Node node) {
+			return (Thread.interrupted()) ? ((transferAfterCancelledWait(node))? THROW_IE : REINTERRUPT) : 0;
+		}
+		
+		private void reportInterruptAfterWait(int interruptMode) throws InterruptedException {
+			if(interruptMode == THROW_IE) {
+				throw new InterruptedException();
+			} else if(interruptMode == REINTERRUPT) {
+				selfInterrupt();
+			}
+		}
 		
 		@Override
 		public void await() throws InterruptedException {
-			// TODO Auto-generated method stub
+			if(Thread.interrupted()) {
+				throw new InterruptedException();
+			}
 			
+			Node node = addConditionWaiter();
+			int saveedState = fullyRelease(node);
+			int interruptMode = 0;
+			
+			while(!isOnSysncQueue(node)) {
+				LockSupport.park(this);
+				if((interruptMode = checkInterruptWhileWating(node)) != 0) {
+					break;
+				}
+			}
+			
+			if(acquireQueued(node, saveedState) && interruptMode != THROW_IE) {
+				interruptMode = REINTERRUPT;
+			}
+			if(node.nextWaiter != null) {
+				unlinkCancelledWaiters();
+			}
+			if(interruptMode != 0) {
+				reportInterruptAfterWait(interruptMode);
+			}
 		}
 
-		@Override
-		public void awaitUninterruptibly() {
-			// TODO Auto-generated method stub
-			
-		}
-
+		
 		@Override
 		public long awaitNanos(long nanosTimeout) throws InterruptedException {
-			// TODO Auto-generated method stub
+			Node node = addConditionWaiter();
+			int savedState = fullyRelease(node);
+			long lastTime = System.nanoTime();
+			// TODO
 			return 0;
 		}
 
@@ -755,17 +885,6 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 			return false;
 		}
 
-		@Override
-		public void signal() {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void signalAll() {
-			// TODO Auto-generated method stub
-			
-		}
 		
 	}
 	
