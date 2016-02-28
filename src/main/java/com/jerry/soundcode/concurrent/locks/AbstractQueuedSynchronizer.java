@@ -1,8 +1,12 @@
 package com.jerry.soundcode.concurrent.locks;
 
 import java.io.Serializable;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import com.jerry.soundcode.concurrent.atomic.Unsafe;
+import com.jerry.soundcode.list.ArrayList;
+import com.jerry.soundcode.list.Collection;
 
 public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchronizer implements Serializable {
 
@@ -100,7 +104,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		}
 	}
 	
-	private Node adWaiter(Node mode) {
+	private Node addWaiter(Node mode) {
 		Node node = new Node(Thread.currentThread(), mode);			
 		
 		Node pred = tail;
@@ -233,6 +237,536 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 	private final boolean parkAndCheckInterrupt() {
 		LockSupport.park(this);
 		return Thread.interrupted();
+	}
+	
+	final boolean acquireQueued(final Node node, int arg) {
+		try {
+			boolean interrupted = false;
+			for(;;) {
+				final Node p = node.predecccessor();
+				if(p == head && tryAcquire(arg)) {
+					setHead(node);
+					p.next = null;
+					return interrupted;
+				}
+				
+				if(shouldParAfterFailedAcquire(p, node)
+						&& parkAndCheckInterrupt())
+					interrupted = true;
+			}
+		} catch (RuntimeException e) {
+			cancelAcquire(node);
+			throw e;
+		}
+		
+	}
+	
+	private void doAcquireInterruptibly(int arg) throws InterruptedException {
+		 
+		final Node node = addWaiter(Node.EXCLUSIVE);
+		try {
+			for(;;) {
+				final Node p = node.predecccessor();
+				if(p == head && tryAcquire(arg)) {
+					setHead(node);
+					p.next = null;
+					return ;
+				}
+				
+				if(shouldParAfterFailedAcquire(p, node) && 
+						parkAndCheckInterrupt()) {
+					break;
+				}
+			}
+		} catch (RuntimeException e) {
+			cancelAcquire(node);
+			throw e;
+		}
+		cancelAcquire(node);
+		throw new InterruptedException();
+	}
+	
+	private boolean doAcquireNanos(int arg, long nanosTimeout) throws Exception {
+		long lastTime = System.nanoTime();
+		final Node node = addWaiter(Node.EXCLUSIVE);
+		
+		try {
+			for(;;) {
+				final Node p = node.predecccessor();
+				if(p == head && tryAcquire(arg)) {
+					setHead(node);
+					p.next = null;
+					return true;
+				}
+				if(nanosTimeout <= 0) {
+					cancelAcquire(node);
+					return false;
+				}
+				if(nanosTimeout > spinForTimeoutThresholf && 
+						shouldParAfterFailedAcquire(p, node)) {
+					LockSupport.parkNanos(this, nanosTimeout);
+				}
+				
+				long now = System.nanoTime();
+				nanosTimeout -= now - lastTime;
+				if(Thread.interrupted()) {
+					break;
+				}
+				
+			}
+		} catch (Exception e) {
+			cancelAcquire(node);
+			throw e;
+		}
+		cancelAcquire(node);
+		throw new InterruptedException();
+	}
+	
+	private void doAcquireShared(int arg) {
+		final Node node = addWaiter(Node.SHARED);
+		
+		try {
+			boolean interrupted = false;
+			for(;;) {
+				final Node p = node.predecccessor();
+				if(p == head) {
+					int r = tryAcquireShared(arg);
+					if(r >= 0) {
+						setHeadAndPropageate(node, r);
+						p.next = null;
+						if(interrupted) {
+							selfInterrupt();
+						}
+						return ;
+					}
+					
+					if(shouldParAfterFailedAcquire(p, node) &&
+							parkAndCheckInterrupt()) {
+						interrupted = true;
+					}
+				}
+			}  
+		} catch (RuntimeException e) {
+			cancelAcquire(node);
+			throw e;
+		}
+	}
+	
+	private void doAcquireSharedInterruptibly(int arg) throws InterruptedException {
+		final Node node = addWaiter(Node.SHARED);
+		
+		try {
+			for(;;) {
+				final Node p = node.predecccessor();
+				if(p == head) {
+					int r = tryAcquireShared(arg);
+					if(r >= 0) {
+						setHeadAndPropageate(node, r);
+						p.next = null;
+						return ;
+					}
+				}
+				
+				if(shouldParAfterFailedAcquire(p, node) &&
+						parkAndCheckInterrupt()) {
+					break;
+				}
+			}
+		} catch(RuntimeException e) {
+			cancelAcquire(node);
+			throw e;
+		}
+		cancelAcquire(node);
+		throw new InterruptedException();
+	}
+	
+	private boolean doAcquireSharedNanos(int arg, long nanosTimeout) throws Exception {
+		
+		long lastTime = System.nanoTime();
+		final Node node = addWaiter(Node.SHARED);
+		
+		try {
+			for(;;) {
+				final Node p = node.predecccessor();
+				if(p == head) {
+					int r = tryAcquireShared(arg);
+					if(r >= 0) {
+						setHeadAndPropageate(node, r);
+						p.next = null;
+						return true;
+					}
+				}
+				
+				if(nanosTimeout <= 0) {
+					cancelAcquire(node);
+					return false;
+				}
+				
+				if(nanosTimeout > spinForTimeoutThresholf &&
+						shouldParAfterFailedAcquire(p, node)) {
+					LockSupport.parkNanos(this, nanosTimeout);
+				}
+				
+				long now = System.nanoTime();
+				nanosTimeout -= now - lastTime;
+				lastTime = now;
+				if(Thread.interrupted()) {
+					break;
+				}
+			}
+		} catch (Exception e) {
+			cancelAcquire(node);
+			throw e;
+		}
+		cancelAcquire(node);
+		throw new InterruptedException();
+	}
+	
+	protected boolean tryAcquire(int arg) {
+		throw new UnsupportedOperationException();
+	}
+	
+	protected boolean tryRelease(int arg) {
+		throw new UnsupportedOperationException();
+	}
+	
+	protected int tryAcquireShared(int arg) {
+		throw new UnsupportedOperationException();
+	}
+	
+	protected boolean tryReleaseShared(int arg) {
+		throw new UnsupportedOperationException();
+	}
+	
+	protected boolean isHeldExclusively() {
+		throw new UnsupportedOperationException();
+	}
+	
+	public final void acquire(int arg) {
+		if(!tryAcquire(arg) && 
+				acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
+			selfInterrupt();
+		}
+	}
+	
+	public final void acquireInterrutibly(int arg) throws InterruptedException {
+		if(Thread.interrupted())
+			throw new InterruptedException();
+		if(!tryAcquire(arg)) {
+			doAcquireInterruptibly(arg);
+		}
+	}
+	
+	public final boolean tryAcquireNanos(int arg, long nanosTimeout) throws Exception {
+		if(Thread.interrupted()) {
+			throw new InterruptedException();
+		}
+		
+		return tryAcquire(arg) || doAcquireNanos(arg, nanosTimeout);
+	}
+	
+	public final boolean release(int arg) {
+		if(tryRelease(arg)) {
+			Node h = head;
+			if(h != null && h.waitStatus != 0) {
+				unparkSuccessor(h);
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	public final void acquireShared(int arg) {
+		 if (tryAcquireShared(arg) < 0) {
+			 doAcquireShared(arg);
+		 }
+	}
+	
+	public final void acquireShoredInterruptibly(int arg) throws InterruptedException {
+		if(Thread.interrupted()) {
+			throw new InterruptedException();
+		}
+		if(tryAcquireShared(arg) < 0) {
+			doAcquireSharedInterruptibly(arg);
+		}
+	}
+	
+	public final boolean tryAcquireSharedNanos(int arg, long nanosTimeout) throws Exception {
+		if(Thread.interrupted()) {
+			throw new InterruptedException();
+		}
+		
+		return tryAcquireShared(arg) >= 0 || doAcquireSharedNanos(arg, nanosTimeout);
+	}
+	
+	public final boolean releaseShared(int arg) {
+		if(tryReleaseShared(arg)) {
+			doReleaseShared();
+			return true;
+		}
+		return false;
+	}
+	
+	public final boolean hashQueuedThreads() {
+		return head != tail;
+	}
+	
+	public final boolean hasContended() {
+		return head != null;
+	}
+	
+	public final Thread getFirstQueuedThread() {
+		return (head == tail) ? null : fullGetFirstQueuedThread();
+	}
+	
+	private Thread fullGetFirstQueuedThread() {
+		Node h, s;
+		Thread st;
+		
+		if(((h = head) != null && (s = h.next) != null && 
+				s.prev == head && (st = s.thread) != null || 
+				((h = head) != null && (s = h.next) != null && 
+				s.prev == head && (st = s.thread) != null))) {
+			return st;
+		}
+		
+		Node t = tail;
+		Thread firstThrad = null;
+		while(t != null && t != head) {
+			Thread tt = t.thread;
+			if(tt != null) {
+				firstThrad = tt;
+			}
+			t = t.prev;
+		}
+		
+		return firstThrad;
+	}
+	
+	public final boolean isQueued(Thread thread) {
+		if(thread == null) {
+			throw new NullPointerException();
+		}
+		
+		for(Node p = tail; p != null; p = p.prev) {
+			if(p.thread == thread) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	final boolean apparentlyFirstQueuedIsExclusive() {
+		Node h, s;
+		return ((h = head) != null && (s = h.next) != null &&
+				s.nextWaiter != Node.SHARED);
+	}
+	
+	final boolean fillIsFirst(Thread current) {
+		Node h, s;
+		Thread firstThread = null;
+		
+		if(((h = head) != null && (s = h.next) != null &&
+				s.prev == head && (firstThread = s.thread) != null))
+			return firstThread == current;
+		
+		Node t = tail;
+		while(t != null && t != head) {
+			Thread tt = t.thread;
+			if(tt != null) {
+				firstThread = tt;
+			}
+			t = t.prev;
+		}
+		
+		return firstThread == current || firstThread == null;
+	}
+	
+	public final int getQueueLength() {
+		int n = 0;
+		for(Node p = tail; p != null; p = p.prev) {
+			if(p.thread != null) {
+				++n;
+			}
+		}
+		return n;
+	}
+	
+	public final Collection<Thread> getQueuedThreads() {
+		ArrayList<Thread> list = new ArrayList<Thread>();
+		for(Node p = tail; p != null; p = p.prev) {
+			Thread t = p.thread;
+			if(t != null) {
+				list.add(t);
+			}
+		}
+		return list;
+	}
+	
+	public final Collection<Thread> getExclusiveQueuedThreads() {
+		ArrayList<Thread> list = new ArrayList<Thread>();
+		for(Node p = tail; p != null; p = p.prev) {
+			if(!p.isShared()) {
+				Thread t = p.thread;
+				if(t != null) {
+					list.add(t);
+				}
+			}
+		}
+		return list;
+	}
+	
+	public final Collection<Thread> getSharedQueuedThreads() {
+		ArrayList<Thread> list = new ArrayList<Thread>();
+		for(Node p = tail; p != null; p = p.prev) {
+			if(p.isShared()) {
+				Thread t = p.thread;
+				if(t != null) {
+					list.add(t);
+				}
+			}
+		}
+		return list;
+	}
+	
+	public String toString() {
+        int s = getState();
+        String q  = hasQueuedThreads()? "non" : "";
+        return super.toString() +
+            "[State = " + s + ", " + q + "empty queue]";
+    }
+	
+	final boolean isOnSysncQueue(Node node) {
+		if(node.waitStatus == Node.CONDITION || node.prev == null) {
+			return false;
+		}
+		
+		if(node.next != null) {
+			return true;
+		}
+		
+		return findNodeFromTail(node);
+	}
+	
+	private boolean findNodeFromTail(Node node) {
+		Node t = tail;
+		for(;;) {
+			if(t == node) {
+				return true;
+			}
+			if(t == null) {
+				return false;
+			}
+			t = t.prev;
+		}
+	}
+	
+	final boolean transferForSignal(Node node) {
+		if(!compareAndSetWaitStatus(node, Node.CONDITION, 0)) {
+			return false;
+		}
+		
+		Node p = enq(node);
+		int ws = p.waitStatus;
+		if(ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL)) {
+			LockSupport.unpark(node.thread);
+		}
+		
+		return true;
+	}
+	
+	final boolean transferAfterCancelledWait(Node node) {
+		if(compareAndSetWaitStatus(node, Node.CANCELLED, 0)) {
+			enq(node);
+			return true;
+		}
+		
+		while(!isOnSysncQueue(node)) {
+			Thread.yield();
+		}
+		
+		return false;
+	}
+	
+	final int fullyRelease(Node node) {
+		try {
+			int savedState = getState();
+			if(release(savedState)) {
+				return savedState;
+			}
+		} catch (RuntimeException e) {
+			node.waitStatus = Node.CANCELLED;
+			throw e;
+		}
+		node.waitStatus = Node.CANCELLED;
+		throw new IllegalMonitorStateException();
+	}
+	
+	/*public final boolean owns(ConditionObejct condition) {
+		if(condition == null) {
+			throw new NullPointerException();
+		}
+		return condition.isOwnedBy(this);
+	}*/
+	
+	public final boolean hasQueuedThreads() {
+		return head != tail;
+	}
+	
+	public class ConditionObject implements Condition, Serializable {
+
+		private static final long serialVersionUID = 1L;
+		
+		private transient Node firstWaiter;
+		private transient Node lastWaiter;
+		
+		public ConditionObject() {}
+		
+		
+		
+		@Override
+		public void await() throws InterruptedException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void awaitUninterruptibly() {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public long awaitNanos(long nanosTimeout) throws InterruptedException {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		public boolean await(long time, TimeUnit unit)
+				throws InterruptedException {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean awaitUnitil(Date deadline) throws InterruptedException {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public void signal() {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void signalAll() {
+			// TODO Auto-generated method stub
+			
+		}
+		
 	}
 	
 	private static final Unsafe unsafe = Unsafe.getUnsafe();
