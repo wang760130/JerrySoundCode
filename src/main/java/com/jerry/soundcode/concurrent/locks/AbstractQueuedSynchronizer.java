@@ -868,7 +868,14 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 			Node node = addConditionWaiter();
 			int savedState = fullyRelease(node);
 			long lastTime = System.nanoTime();
-			// TODO
+			int interruptMode = 0;
+			
+			while(!isOnSysncQueue(node)) {
+				if(nanosTimeout <= 0L) {
+					
+				}
+			}
+			
 			return 0;
 		}
 
