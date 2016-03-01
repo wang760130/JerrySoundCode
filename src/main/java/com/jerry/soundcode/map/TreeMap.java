@@ -58,10 +58,12 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return size;
 	}
 	
+	@Override
 	public boolean containsKey(Object key) {
 		return getEntry(key) != null;
 	}
 	
+	@Override
 	public boolean containsValue(Object value) {
 		for(Entry<K, V> e = getFirstEntry(); e != null; e = successor(e)) {
 			if(valEquals(value, e.value)) {
@@ -71,6 +73,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return false;
 	} 
 	
+	@Override
 	public V get(Object key) {
 		Entry<K, V> p = getEntry(key);
 		return (p == null ? null : p.value);
@@ -91,6 +94,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return key(getLastEntry());
 	}
 
+	@Override
 	public void putAll(Map<? extends K, ? extends V> map) {
 		int mapSize = map.size();
 		if(size == 0 && mapSize != 0 && map instanceof SortedMap) {
@@ -266,6 +270,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	  
+	@Override
 	public V put(K key, V value) {
 		Entry<K, V> t = root;
 		if(t == null) {
@@ -322,6 +327,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	@Override
 	public V remove(Object key) {
 		Entry<K, V> p = getEntry(key);
 		if(p == null) {
@@ -332,12 +338,14 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return oldValue;
 	}
 
+	@Override
 	public void clear() {
 		modCount ++;
 		size = 0;
 		root = null;
 	}
 	
+	@Override
 	public Object clone() {
 		TreeMap<K, V> clone = null;
 		try {
@@ -436,24 +444,29 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 	private transient KeySet<K> navigableKeySet = null;
 	private transient NavigableMap<K, V> descendingMap = null;
 	
+	@Override
 	public Set<K> keySet() {
 		return navigableKeySet();
 	}
 	
+	@Override
 	public NavigableSet<K> navigableKeySet() {
 		KeySet<K> nks = navigableKeySet;
 		return (nks != null) ? nks : (navigableKeySet = new KeySet(this));
 	}
 
+	@Override
 	public NavigableSet<K> descendingKeySet() {
 		return descendingMap().navigableKeySet();
 	}
 	
+	@Override
 	public Collection<V> values() {
 		Collection<V> vs = values;
 		return (vs != null) ? vs : (values = new Values());
 	}
 	
+	@Override
 	public Set<Map.Entry<K, V>> entrySet() {
 		EntrySet es = entrySet;
 		return (es != null) ? es : (entrySet = new EntrySet());
@@ -600,71 +613,87 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 
 		}
 
+		@Override
 		public int size() {
 			return m.size();
 		}
 		
+		@Override
 		public boolean isEmpty() {
 			return m.isEmpty();
 		}
 		
+		@Override
 		public boolean contains(Object o) {
 			return m.containsKey(o);
 		}
 		
+		@Override
 		public void clear() {
 			m.clear();
 		}
 		
+		@Override
 		public T lower(T t) {
 			return m.lowerKey(t);
 		}
 		
+		@Override
 		public T floor(T t) {
 			return m.floorKey(t);
 		}
 		
+		@Override
 		public T ceiling(T t) {
 			return m.ceilingKey(t);
 		}
 		
+		@Override
 		public T higher(T t) {
 			return m.higherKey(t);
 		}
 		
+		@Override
 		public T first() {
 			return m.firstKey();
 		}
 		
+		@Override
 		public T last() {
 			return m.lastKey();
 		}
 		
+		@Override
 		public Comparator<? super T> comparator() {
 			return m.comparator();
 		}
 		
+		@Override
 		public T pollFirst() {
 			Map.Entry<T, Object> e = m.pollFirstEntry();
 			return e == null ? null : e.getKey();
 		}
 		
+		@Override
 		public T pollLast() {
 			Map.Entry<T, Object> e = m.pollLastEntry();
 			return e == null ? null : e.getKey();
 		}
 		
+		@Override
 		public boolean remove(Object o) {
 			int oldSize = size();
 			m.remove(o);
 			return size() != oldSize;
 		}
 		
+		@Override
 		public NavigableSet<T> subSet(T fromElement, boolean fromInclusive,
 									  T toElement,   boolean toInclusive) {
 			return new TreeSet<T> (m.subMap(fromElement, fromInclusive, toElement, toInclusive));
 		}
 		
+		@Override
 		public NavigableSet<T> headSet(T toElement, boolean inclusive) {
 			return new TreeSet<T> (m.headMap(toElement, inclusive));
 		}
@@ -707,6 +736,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			next = first;
 		}
 		
+		@Override
 		public final boolean hasNext() {
 			return next != null;
 		}
@@ -742,6 +772,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return e;
 		} 
 		
+		@Override
 		public void remove() {
 			if(lastReturned == null) {
 				throw new IllegalSelectorException();
@@ -837,6 +868,8 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 	static abstract class NavigableSubMap<K, V> extends AbstractMap<K, V> 
 		implements NavigableMap<K, V>, Serializable {
 		
+		private static final long serialVersionUID = 1L;
+
 		final TreeMap<K, V> m;
 		
 		final K lo, hi;
@@ -967,18 +1000,22 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		
 		abstract Iterator<K> descendingKeyIterator();
 		
+		@Override
 		public boolean isEmpty() {
 			return (fromStart && toEnd) ? m.isEmpty() : entrySet().isEmpty();
 		}
 	
+		@Override
 		public int size() {
 			return (fromStart && toEnd) ? m.size() :entrySet().size();
 		}
 		
+		@Override
 		public final boolean containsKey(Object key) {
 			return inRange(key) && m.containsKey(key);
 		}
 		
+		@Override
 		public final V put(K key, V value) {
 			if(!inRange(key)) {
 				throw new IllegalArgumentException("key out of range");
@@ -986,50 +1023,62 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return m.put(key, value);
 		}
 		
+		@Override
 		public final V get(Object key) {
 			return !inRange(key) ? null : m.get(key);
 		}
 		
+		@Override
 		public final V remove(Object key) {
 			return !inRange(key) ? null : m.remove(key);
 		}
 		
+		@Override
 		public final Map.Entry<K, V> ceilingEntry(K key) {
 			return exportEntry(subCeiling(key));
 		}
 		
+		@Override
 		public final K ceilingKey(K key) {
 			return keyOrNull(subCeiling(key));
 		}
 		
+		@Override
 		public final Map.Entry<K, V> higherEntry(K key) {
 			return exportEntry(subHigher(key));
 		}
 		
+		@Override
 		public final K higherKey(K key) {
 			return keyOrNull(subHigher(key));
 		}
 		
+		@Override
 		public final Map.Entry<K, V> floorEntry(K key) {
 			return exportEntry(subFloor(key));
 		}
 		
+		@Override
 		public final K floorKey(K key) {
 			return keyOrNull(subFloor(key));
 		}
 		
+		@Override
 		public final Map.Entry<K, V> lowerEntry(K key) {
 			return exportEntry(subLower(key));
 		}
 		
+		@Override
 		public final K lowerKey(K key) {
 			return keyOrNull(subLower(key));
 		}
 		
-		public final K fitstKey() {
+		@Override
+		public K firstKey() {
 			return key(subLowest());
 		}
 		
+		@Override
 		public final K lastKey() {
 			return key(subHighest());
 		}
@@ -1046,6 +1095,36 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		transient NavigableMap<K, V> descendingMapView = null;
 		transient EntrySetView entrySetView = null;
 		transient KeySet<K> navigableKeySetView = null;
+		
+		public NavigableSet<K> navigableKeySet() {
+			KeySet<K> nksv = navigableKeySetView;
+			return (nksv != null) ? nksv : (navigableKeySetView = new TreeMap.KeySet(this));
+		}
+		
+		@Override
+		public  Set<K> keySet() {
+			return navigableKeySet();
+		}
+		
+		@Override
+		public NavigableSet<K> descendingKeySet() {
+			return descendingMap().navigableKeySet();
+		}
+		
+		@Override
+		public  SortedMap<K, V> subMap(K fromKey, K toKey) {
+			return subMap(fromKey, true, toKey, false);
+		}
+		
+		@Override
+		public  SortedMap<K, V> headMap(K toKey) {
+			return headMap(toKey, false);
+		}
+		
+		@Override
+		public  SortedMap<K, V> tailMap(K fromKey) {
+			return tailMap(fromKey, true);
+		}
 		
 		abstract class EntrySetView extends AbstractSet<Map.Entry<K, V>> {
 			private transient int size = -1, sizeModCount;
@@ -1122,8 +1201,96 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 					return next != null && next.key != fenceKey;
 				}
 				
+				final TreeMap.Entry<K, V> nextEntry() {
+					TreeMap.Entry<K, V> e = next;
+					if(e == null || e.key == fenceKey) {
+						throw new NoSuchElementException();
+					}
+					if(m.modCount != expectedModCount) {
+						throw new ConcurrentModificationException();
+					}
+					next = successor(e);
+					lastReturned = e;
+					return e ;
+				}
 				
+				final TreeMap.Entry<K, V> prevEntry() {
+					TreeMap.Entry<K, V> e = next;
+					if(e == null || e.key == fenceKey) {
+						throw new NoClassDefFoundError();
+					}
+					if(m.modCount != expectedModCount) {
+						throw new ConcurrentModificationException();
+					}
+					next = predecessor(e);
+					lastReturned = e;
+					return e;
+				}
+				
+				final void removeAscending() {
+					if(lastReturned == null) {
+						throw new IllegalSelectorException();
+					}
+					if(m.modCount != expectedModCount) {
+						throw new ConcurrentModificationException();
+					}
+					
+					if(lastReturned.left != null && lastReturned.right != null) {
+						next = lastReturned;
+					}
+					m.deleteEntry(lastReturned);
+					lastReturned = null;
+					expectedModCount = m.modCount;
+				}
+				
+				final void removeDescending() {
+					if(lastReturned == null) {
+						throw new IllegalSelectorException();
+					}
+					if(m.modCount != expectedModCount) {
+						throw new ConcurrentModificationException();
+					}
+					m.deleteEntry(lastReturned);
+					lastReturned = null;
+					expectedModCount = m.modCount;
+				}
 			}
+			
+			final class SubMapEntryIterator extends SubMapIterator<Map.Entry<K, V>> {
+
+				SubMapEntryIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
+					super(first, fence);
+				}
+
+				@Override
+				public Map.Entry<K, V> next() {
+					return nextEntry();
+				}
+
+				@Override
+				public void remove() {
+					removeAscending();
+				}
+			}
+			
+			final class SubMapKeyIterator extends SubMapIterator<Map.Entry<K,V>> {
+
+				SubMapKeyIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
+					super(first, fence);
+				}
+
+				@Override
+				public Map.Entry<K,V> next() {
+					return nextEntry();
+				}
+
+				@Override
+				public void remove() {
+					removeAscending();
+				}
+			}
+			
+			// TODO
 		}
 	}
 	
@@ -1459,7 +1626,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
-
+	
 	
 	
  	
