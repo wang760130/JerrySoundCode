@@ -872,27 +872,172 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 			
 			while(!isOnSysncQueue(node)) {
 				if(nanosTimeout <= 0L) {
-					
+					transferAfterCancelledWait(node);
+					break;
+				}
+				LockSupport.parkNanos(this, nanosTimeout);
+				if((interruptMode = checkInterruptWhileWating(node)) != 0) {
+					break;
+				}
+				
+				long now = System.nanoTime();
+				nanosTimeout -= now - lastTime;
+				lastTime = now;
+			}
+			
+			if(acquireQueued(node, savedState) && interruptMode != THROW_IE) {
+				interruptMode = REINTERRUPT;
+			}
+			if(node.nextWaiter != null) {
+				unlinkCancelledWaiters();
+			}
+			if(interruptMode != 0) {
+				reportInterruptAfterWait(interruptMode);
+			}
+			
+			return nanosTimeout - (System.nanoTime() - lastTime);
+		}
+
+		@Override
+		public boolean awaitUntil(Date deadline) throws InterruptedException {
+			if(deadline == null) {
+				throw new NullPointerException();
+			}
+			
+			long abstime = deadline.getTime();
+			if(Thread.interrupted()) {
+				throw new InterruptedException();
+			}
+			
+			Node node = addConditionWaiter();
+			int savedState = fullyRelease(node);
+			boolean timedout = false;
+			int interruptMode = 0;
+			
+			while(!isOnSysncQueue(node)) {
+				if(System.currentTimeMillis() > abstime) {
+					timedout = transferAfterCancelledWait(node);
+					break;
+				}
+				
+				LockSupport.parkUntil(this, abstime);
+				if((interruptMode = checkInterruptWhileWating(node)) != 0) {
+					break;
 				}
 			}
 			
-			return 0;
-		}
-
-		@Override
-		public boolean await(long time, TimeUnit unit)
-				throws InterruptedException {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public boolean awaitUnitil(Date deadline) throws InterruptedException {
-			// TODO Auto-generated method stub
-			return false;
+			if(acquireQueued(node, savedState) && interruptMode != THROW_IE) {
+				interruptMode = REINTERRUPT;
+			}
+			
+			if(node.nextWaiter != null) {
+				unlinkCancelledWaiters();
+			}
+			
+			if(interruptMode != 0) {
+				reportInterruptAfterWait(interruptMode);
+			}
+			
+			return !timedout;
 		}
 
 		
+		@Override
+		public boolean await(long time, TimeUnit unit)
+				throws InterruptedException {
+			
+			if(unit == null) {
+				throw new NullPointerException();
+			}
+			
+			long nanosTimeout = unit.toNanos(time);
+			if(Thread.interrupted()) {
+				throw new InterruptedException();
+			}
+			
+			Node node = addConditionWaiter();
+			int savedState = fullyRelease(node);
+			long lastTime = System.nanoTime();
+			boolean timedout = false;
+			int interruptMode = 0;
+			
+			while(!isOnSysncQueue(node)) {
+				if(nanosTimeout <= 0L) {
+					timedout = transferAfterCancelledWait(node);
+					break;
+				}
+				
+				LockSupport.parkNanos(this, nanosTimeout);
+				
+				if((interruptMode = checkInterruptWhileWating(node)) != 0) {
+					break;
+				}
+				
+				long now = System.nanoTime();
+				nanosTimeout -= now - lastTime;
+				lastTime = now;
+			}
+			
+			if(acquireQueued(node, savedState) && interruptMode != THROW_IE) {
+				interruptMode = REINTERRUPT;
+			}
+			if(node.nextWaiter != null) {
+				unlinkCancelledWaiters();
+			}
+			
+			if(interruptMode != 0) {
+				reportInterruptAfterWait(interruptMode);
+			}
+			
+			return !timedout;
+		}
+		
+		final boolean isOwnedBy(AbstractOwnableSynchronizer sync) {
+			return sync == AbstractQueuedSynchronizer.this;
+		}
+		
+		protected final boolean hasWaiters() {
+			if(!isHeldExclusively()) {
+				throw new IllegalMonitorStateException();
+			}
+			for(Node w = firstWaiter; w != null; w = w.nextWaiter) {
+				if(w.waitStatus == Node.CONDITION) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		protected final int getWaitQueueLength() {
+			if(!isHeldExclusively()) {
+				throw new IllegalMonitorStateException();
+			}
+			int n = 0;
+			for(Node w = firstWaiter; w != null; w = w.nextWaiter) {
+				if(w.waitStatus == Node.CONDITION) {
+					++n;
+				}
+			}
+			return n;
+		}
+		
+		protected final Collection<Thread> getWaitingThreads() {
+			if(!isHeldExclusively()) {
+				throw new IllegalMonitorStateException();
+			}
+			
+			ArrayList<Thread> list = new ArrayList<Thread>();
+			for(Node w = firstWaiter; w != null; w = w.nextWaiter) {
+				if(w.waitStatus == Node.CONDITION) {
+					Thread t = w.thread;
+					if(t != null) {
+						list.add(t);
+					}
+				}
+			}
+			return list;
+		}
+
 	}
 	
 	private static final Unsafe unsafe = Unsafe.getUnsafe();
