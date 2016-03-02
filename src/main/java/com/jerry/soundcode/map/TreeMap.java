@@ -1273,16 +1273,16 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 				}
 			}
 			
-			final class SubMapKeyIterator extends SubMapIterator<Map.Entry<K,V>> {
+			final class SubMapKeyIterator extends SubMapIterator<K> {
 
 				SubMapKeyIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
 					super(first, fence);
 				}
 
 				@Override
-				public Map.Entry<K,V> next() {
-					return nextEntry();
-				}
+				public K next() {
+	                return nextEntry().key;
+	            }
 
 				@Override
 				public void remove() {
@@ -1290,8 +1290,174 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 				}
 			}
 			
-			// TODO
+			final class DescendingSubMapEntryIterator extends SubMapIterator<Map.Entry<K, V>> {
+
+				DescendingSubMapEntryIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
+					super(first, fence);
+				}
+
+				@Override
+				public Map.Entry<K, V> next() {
+					return prevEntry();
+				}
+
+				@Override
+				public void remove() {
+					removeDescending();
+				}
+				
+			}
+			
+			final class DescendingSubMapKeyIterator extends SubMapIterator<K> {
+
+				DescendingSubMapKeyIterator(TreeMap.Entry<K, V> last,TreeMap.Entry<K, V> fence) {
+					super(last, fence);
+				}
+
+				@Override
+				public K next() {
+					return prevEntry().key;
+				}
+
+				@Override
+				public void remove() {
+					removeDescending();
+				}
+				
+			}
 		}
+		
+		static final class AscendingSubMap<K, V> extends NavigableSubMap<K, V> {
+
+			private static final long serialVersionUID = 1L;
+
+			AscendingSubMap(TreeMap<K, V> m, boolean fromStart, K lo,
+					boolean loInclusive, boolean toEnd, K hi,
+					boolean hiInclusive) {
+				super(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive);
+			}
+
+			@Override
+			public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
+					K toKey, boolean toInclusive) {
+				if(!inRange(fromKey, fromInclusive)) {
+					throw new IllegalArgumentException("fromKey out of range");
+				}
+				
+				if(!inRange(toKey, toInclusive)) {
+					throw new IllegalArgumentException("toKey out of range");
+				}
+				
+				return new AscendingSubMap(m, false, fromKey, fromInclusive, false, toKey, toInclusive);
+			}
+			
+			@Override
+			public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
+				if(!inRange(toKey, inclusive)) {
+					throw new IllegalArgumentException("toKey out of range");
+				}
+				return new AscendingSubMap(m, fromStart, lo, loInclusive, false, toKey, inclusive);
+			}
+			
+			@Override
+			public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
+				if (!inRange(fromKey, inclusive))
+					throw new IllegalArgumentException("fromKey out of range");
+				return new AscendingSubMap(m, false, fromKey, inclusive, toEnd, hi, hiInclusive);
+			}
+			
+			@Override
+			public NavigableMap<K, V> descendingMap() {
+				NavigableMap<K, V> mv = descendingMapView;
+				return (mv != null) ? mv : (descendingMapView = new DescendingSubMap(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive));
+			}
+			
+			@Override
+			Iterator<K> keyIterator() {
+//				return new SubMapKeyIterator(absLowest(), absHighFence());
+				return null;
+			}
+			
+			@Override
+			public Map.Entry<K, V> firstEntry() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Map.Entry<K, V> lastEntry() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Map.Entry<K, V> pollLastEntry() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			
+
+			
+
+			@Override
+			public Comparator<? super K> comparator() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			TreeMap.Entry<K, V> subLowest() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			TreeMap.Entry<K, V> subHighest() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			TreeMap.Entry<K, V> subCeiling(K key) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			TreeMap.Entry<K, V> subHigher(K key) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			TreeMap.Entry<K, V> subFloor(K key) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			TreeMap.Entry<K, V> subLower(K key) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			Iterator<K> descendingKeyIterator() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Set<Map.Entry<K, V>> entrySet() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+			
+		}
+		
+		// TODO
 	}
 	
 	
