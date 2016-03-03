@@ -130,7 +130,8 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 
-	public V get(K key, V value) {
+	@Override
+	public V put(K key, V value) {
 		if(key == null) 
 			return putForNullKey(value);
 		
