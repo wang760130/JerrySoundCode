@@ -8,6 +8,7 @@
 		Vector
 		LinkedList
 		Stack
+		ReferenceQueue
 	Set
 		HashSet
 		TreeSet
