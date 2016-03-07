@@ -16,12 +16,15 @@ public class ReferenceQueue<T> {
 	static private class Lock {};
 	
 	private Lock lock = new Lock();
-	private volatile ReferenceQueue<? extends T> head = null;
+	private volatile Reference<? extends T> head = null;
 	private long queueLength = 0;
 	
-	boolean enqueue(ReferenceQueue<? extends T> r) {
+	boolean enqueue(Reference r) {
 		synchronized (r) {
-			
+//			if(r.queue == ENQUEUED) {
+//				return false;
+//			}
+				
 		}
 		
 		return false;
