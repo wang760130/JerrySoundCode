@@ -65,6 +65,28 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 	
 	private static final Object NULL_KEY = new Object();
 	
+	private static Object maskNull(Object key) {
+		return (key == null ? NULL_KEY : key);
+	}
+	
+	private static <K> K unmaskNull(Object key) {
+		return (K)(key == NULL_KEY ?  null : key);
+	}
+	
+	static boolean eq(Object x, Object y) {
+		return x == y || x.equals(y);
+	}
+	
+	static int indexFor(int h, int length) {
+		return h & (length - 1);
+	}
+	
+	
+	
+	
+	// TODO
+	
+	
 	@Override
 	public Set<Map.Entry<K, V>> entrySet() {
 		return null;
