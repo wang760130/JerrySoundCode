@@ -230,6 +230,17 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		}
 	}
 	
+	public void putAll(Map<? extends K, ? extends V> m) {
+		int numKeysToBeAdded = m.size();
+		if(numKeysToBeAdded == 0) {
+			return;
+		}
+		
+		if(numKeysToBeAdded > threshold) {
+			
+		}
+	} 
+	
 	// TODO
 	
 	
