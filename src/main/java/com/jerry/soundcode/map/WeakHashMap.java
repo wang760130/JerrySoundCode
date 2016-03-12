@@ -126,6 +126,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return table;
 	}
 	
+	@Override
 	public int size() {
 		if(size == 0) {
 			return 0;
@@ -134,10 +135,12 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return size;
 	}
 	
+	@Override
 	public boolean isEmpty() {
 		return size() == 0;
 	}
 	
+	@Override
 	public V get(Object key) {
 		Object k = maskNull(key);
 		int h = HashMap.hash(k.hashCode());
@@ -154,6 +157,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return null;
 	}
 	
+	@Override
 	public boolean containsKey(Object key) {
 		return getEntry(key) != null;
 	}
@@ -171,6 +175,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return e;
 	}
 	
+	@Override
 	public V put(K key, V value) {
 		K k = (K)maskNull(key);
 		int h = HashMap.hash(k.hashCode());
@@ -239,6 +244,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		}
 	}
 	
+	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		int numKeysToBeAdded = m.size();
 		if(numKeysToBeAdded == 0) {
@@ -265,6 +271,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			
 	} 
 	
+	@Override
 	public V remove(Object key) {
 		Object k = maskNull(key);
 		int h = HashMap.hash(k.hashCode());
@@ -324,6 +331,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return null;
 	}
 	
+	@Override
 	public void clear() {
 		while(queue.poll() != null)
 			;
@@ -338,6 +346,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			;
 	}
 	
+	@Override
 	public boolean containsValue(Object value) {
 		if(value == null) {
 			return containsNullValue();
@@ -379,6 +388,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			this.next = next;
 		}
 
+		
 		public K getKey() {
 			return WeakHashMap.<K>unmaskNull(get());
 		}
@@ -393,6 +403,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return oldValue;
 		}
 		
+		@Override
 		public boolean equals(Object o) {
 			if(! (o instanceof Map.Entry)) {
 				return false;
@@ -412,6 +423,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return false;
 		}
 		
+		@Override
 		public int hashCode() {
 			Object k = getKey();
 			Object v = getValue();
@@ -419,6 +431,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return ((k == null ? 0 : k.hashCode())) ^ (v == null ? 0 : v.hashCode());
 		}
 		
+		@Override
 		public String toString() {
 			return getKey() + "=" + getValue();
 		}
@@ -437,6 +450,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			index = (size() != 0 ? table.length : 0 );
 		}
 		
+		@Override
 		public boolean hasNext() {
 			Entry[] t = table;
 			
@@ -480,6 +494,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return lastReturned;
 		}
 				
+		@Override
 		public void remove() {
 			if (lastReturned == null)
 	                throw new IllegalStateException();
@@ -531,10 +546,12 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return WeakHashMap.this.size();
 		}
 		
+		@Override
 		public boolean contains(Object o) {
 			return containsKey(o);
 		}
 		
+		@Override
 		public boolean remove(Object o) {
 			if(containsKey(o)) {
 				WeakHashMap.this.remove(o);
@@ -544,6 +561,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			}
 		}
 		
+		@Override
 		public void clear() {
 			WeakHashMap.this.clear();
 		}
@@ -591,6 +609,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return new EntryIterator();
 		}
 		
+		@Override
 		public boolean contains(Object o) {
 			if(!(o instanceof Map.Entry)) {
 				return false;
@@ -601,6 +620,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return candidate != null && candidate.equals(e);
 		}
 		
+		@Override
 		public boolean remove(Object o) {
 			return removeMapping(o) != null;
 		}
@@ -610,6 +630,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return WeakHashMap.this.size();
 		}
 		
+		@Override
 		public void clear() {
 			WeakHashMap.this.clear();
 		}
