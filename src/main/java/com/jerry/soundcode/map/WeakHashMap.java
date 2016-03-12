@@ -1,7 +1,16 @@
 package com.jerry.soundcode.map;
 
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
+
+import com.jerry.soundcode.list.AbstractCollection;
+import com.jerry.soundcode.list.ArrayList;
+import com.jerry.soundcode.list.Collection;
+import com.jerry.soundcode.list.Iterator;
+import com.jerry.soundcode.list.List;
 import com.jerry.soundcode.list.ReferenceQueue;
 import com.jerry.soundcode.ref.WeakReference;
+import com.jerry.soundcode.set.AbstractSet;
 import com.jerry.soundcode.set.Set;
 
 public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
@@ -237,18 +246,126 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		}
 		
 		if(numKeysToBeAdded > threshold) {
-			
+			int targetCapacity = (int) (numKeysToBeAdded / loadFactor + 1);
+			if(targetCapacity > MAXIMUM_CAPACITY) {
+				targetCapacity = MAXIMUM_CAPACITY;
+			}
+			int newCapacity = table.length;
+			while(newCapacity < targetCapacity){
+				newCapacity <<= 1;
+			}
+			if(newCapacity > table.length) {
+				resize(newCapacity);
+			}
 		}
+		
+//		for(Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
+//			put(e.getKey(), e.getValue());
+//		}
+			
 	} 
 	
-	// TODO
-	
-	
-	@Override
-	public Set<Map.Entry<K, V>> entrySet() {
+	public V remove(Object key) {
+		Object k = maskNull(key);
+		int h = HashMap.hash(k.hashCode());
+		Entry[] tab = getTable();
+		int i = indexFor(h,tab.length);
+		
+		Entry<K, V> prev = tab[i];
+		Entry<K, V> e = prev;
+		
+		while(e != null) {
+			Entry<K, V> next = e.next;
+			if(h == e.hash && eq(k, e.get())) {
+				modCount ++;
+				size --;
+				if(prev == e) {
+					tab[i] = next;
+				} else {
+					prev.next = next;
+				}
+				return e.value;
+			}
+			prev = e;
+			e = next;
+		}
 		return null;
 	}
 	
+	Entry<K, V> removeMapping(Object o) {
+		if(! (o instanceof Map.Entry)) {
+			return null;
+		}
+		Entry[] tab = getTable();
+		Map.Entry entry = (Map.Entry) o;
+		Object k = maskNull(entry.getKey());
+		int h = HashMap.hash(k.hashCode());
+		int i = indexFor(h, tab.length);
+		
+		Entry<K, V> prev = tab[i];
+		Entry<K, V> e = prev;
+		
+		while(e != null) {
+			Entry<K, V> next = e.next;
+			if(h == e.hash && e.equals(entry)) {
+				modCount ++;
+				size --;
+				if(prev == e) {
+					tab[i] = next;
+				} else {
+					prev.next = next;
+				}				
+				return e;
+			}
+			prev = e;
+			e = next;
+		}
+		
+		return null;
+	}
+	
+	public void clear() {
+		while(queue.poll() != null)
+			;
+		
+		modCount ++;
+		Entry[] tab = table;
+		for(int i = 0; i < tab.length; ++i) {
+			tab[i] = null;
+		}
+		size = 0;
+		while(queue.poll() != null)
+			;
+	}
+	
+	public boolean containsValue(Object value) {
+		if(value == null) {
+			return containsNullValue();
+		}
+		
+		Entry[] tab = getTable();
+		for(int i = tab.length; i-- > 0;) {
+			for(Entry e = tab[i]; e != null; e = e.next) {
+				if(value.equals(e.value)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	private boolean containsNullValue() {
+		Entry[] tab = getTable();
+		for(int i = tab.length; i-- >  0;) {
+			for(Entry e = tab[i]; e != null; e = e.next) {
+				if(e.value == null) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	private static class Entry<K, V> extends WeakReference<K> {
 		
 		private V value;
@@ -261,8 +378,6 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			this.hash = hash;
 			this.next = next;
 		}
-		
-
 
 		public K getKey() {
 			return WeakHashMap.<K>unmaskNull(get());
@@ -308,4 +423,212 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return getKey() + "=" + getValue();
 		}
 	}
+	
+	private abstract class HashIterator<T> implements Iterator<T> {
+		int index;
+		Entry<K, V> entry = null;
+		Entry<K, V> lastReturned = null;
+		int expectedModCount = modCount;
+		
+		Object nextKey = null;
+		Object currentKey = null;
+		
+		HashIterator() {
+			index = (size() != 0 ? table.length : 0 );
+		}
+		
+		public boolean hasNext() {
+			Entry[] t = table;
+			
+			while(nextKey == null) {
+				Entry<K, V> e = entry;
+				int i = index;
+				
+				while(e == null && i > 0) {
+					e = t[--i];
+				}
+				
+				entry = e;
+				index = i;
+				
+				if(e == null) {
+					currentKey = null;
+					return false;
+				}
+				
+				nextKey = e.get();
+				if(nextKey == null) {
+					entry = entry.next;
+				}
+			}
+			return true;
+		}
+		
+		protected Entry<K, V> nextEntry() {
+			if(modCount != expectedModCount) {
+                throw new ConcurrentModificationException();
+			}
+			
+			if(nextKey == null && !hasNext()) {
+                throw new NoSuchElementException();
+			}
+			
+			lastReturned = entry;
+			entry = entry.next;
+			currentKey = nextKey;
+			nextKey = null;
+			return lastReturned;
+		}
+				
+		public void remove() {
+			if (lastReturned == null)
+	                throw new IllegalStateException();
+            if (modCount != expectedModCount)
+                throw new ConcurrentModificationException();
+            
+            WeakHashMap.this.remove(currentKey);
+            expectedModCount = modCount;
+            lastReturned = null;
+            currentKey = null;
+		}
+	}
+	
+	private class ValueIterator extends HashIterator<V> {
+		public V next() {
+			return nextEntry().value;
+		}
+	}
+	
+	private class KeyIterator extends HashIterator<K> {
+		public K next() {
+			return nextEntry().getKey();
+		}
+	}
+	
+	private class EntryIterator extends HashIterator<Map.Entry<K,V>> {
+		public Map.Entry<K, V> next() {
+			return (Map.Entry<K, V>) nextEntry();
+		}
+		
+	}
+	
+	private transient Set<Map.Entry<K, V>> entrySet = null;
+	
+	public Set<K> keySet() {
+		Set<K> ks = keySet;
+		return (ks != null) ? ks : (keySet = new KeySet());
+	}
+	
+	private class KeySet extends AbstractSet<K> {
+
+		@Override
+		public Iterator<K> iterator() {
+			return new KeyIterator();
+		}
+
+		@Override
+		public int size() {
+			return WeakHashMap.this.size();
+		}
+		
+		public boolean contains(Object o) {
+			return containsKey(o);
+		}
+		
+		public boolean remove(Object o) {
+			if(containsKey(o)) {
+				WeakHashMap.this.remove(o);
+				return true;
+			} else {
+				return false;
+			}
+		}
+		
+		public void clear() {
+			WeakHashMap.this.clear();
+		}
+		
+	}
+	
+	public Collection<V> values() {
+		Collection<V> vs = values;
+		return (vs != null ? vs : (values = new Values()));
+	}
+	
+	private class Values extends AbstractCollection<V> {
+
+		@Override
+		public Iterator<V> iterator() {
+			return new ValueIterator();
+		}
+
+		@Override
+		public int size() {
+			return WeakHashMap.this.size;
+		}
+		
+		@Override
+		public boolean contains(Object o) {
+			return containsValue(o);
+		}
+		
+		@Override
+		public void clear() {
+			WeakHashMap.this.clear();
+		}
+	}
+	
+	@Override
+	public Set<Map.Entry<K, V>> entrySet() {
+		Set<Map.Entry<K, V>> es = entrySet;
+		return es != null ? es : (entrySet = new EntrySet());
+	}
+	
+	private class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+
+		@Override
+		public Iterator<Map.Entry<K, V>> iterator() {
+			return new EntryIterator();
+		}
+		
+		public boolean contains(Object o) {
+			if(!(o instanceof Map.Entry)) {
+				return false;
+			}
+			Map.Entry e = (Map.Entry) o;
+			Object k = e.getKey();
+			Entry candidate = getEntry(e.getKey());
+			return candidate != null && candidate.equals(e);
+		}
+		
+		public boolean remove(Object o) {
+			return removeMapping(o) != null;
+		}
+		
+		@Override
+		public int size() {
+			return WeakHashMap.this.size();
+		}
+		
+		public void clear() {
+			WeakHashMap.this.clear();
+		}
+	}
+	
+	private List<Map.Entry<K, V>> deepCopy() {
+		List<Map.Entry<K, V>> list = new ArrayList<Map.Entry<K, V>>(size());
+//		for(Map.Entry<K, V> e : this) {
+//			list.add(new AbstractMap.SimpleEntry<K, V>(e));
+//		}
+		return list; 
+	}
+	
+	public Object[] toArray() {
+		return deepCopy().toArray();
+	}
+	
+	public <T> T[] toArray(T[] a) {
+		return deepCopy().toArray(a);
+	}
+	
 }
