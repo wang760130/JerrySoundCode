@@ -13,7 +13,7 @@ public interface Condition {
 	
 	boolean await(long time, TimeUnit unit) throws InterruptedException;
 	
-	boolean awaitUnitil(Date deadline) throws InterruptedException;
+	boolean awaitUntil(Date deadline) throws InterruptedException;
 	
 	void signal();
 	

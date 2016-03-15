@@ -130,7 +130,8 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 
-	public V get(K key, V value) {
+	@Override
+	public V put(K key, V value) {
 		if(key == null) 
 			return putForNullKey(value);
 		
@@ -253,7 +254,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return (e == null ? null : e.value);
 	}
 	
-	private Entry<K, V> removeEntryForKey(Object key) {
+	protected Entry<K, V> removeEntryForKey(Object key) {
 		int hash = (key == null) ? 0 : hash(key.hashCode());
 		int i = indexFor(hash, table.length);
 		
