@@ -1082,9 +1082,30 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		public final K lastKey() {
 			return key(subHighest());
 		}
+
+		@Override
+		public final Map.Entry<K, V> firstEntry() {
+			return exportEntry(subLowest());
+		}
 		
+		@Override
+		public final Map.Entry<K, V> lastEntry() {
+			return exportEntry(subHighest());
+		}
+		
+		@Override
 		public final Map.Entry<K, V> pollFirstEntry() {
 			TreeMap.Entry<K, V> e = subLowest();
+			Map.Entry<K, V> result = exportEntry(e);
+			if(e != null) {
+				m.deleteEntry(e);
+			}
+			return result;
+		}
+		
+		@Override
+		public final Map.Entry<K, V> pollLastEntry() {
+			TreeMap.Entry<K, V> e = subHighest();
 			Map.Entry<K, V> result = exportEntry(e);
 			if(e != null) {
 				m.deleteEntry(e);
@@ -1096,6 +1117,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		transient EntrySetView entrySetView = null;
 		transient KeySet<K> navigableKeySetView = null;
 		
+		@Override
 		public NavigableSet<K> navigableKeySet() {
 			KeySet<K> nksv = navigableKeySetView;
 			return (nksv != null) ? nksv : (navigableKeySetView = new TreeMap.KeySet(this));
@@ -1183,116 +1205,366 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 				}
 				return false;
 			}
+		}
+		
+		abstract class SubMapIterator<T> implements Iterator<T> {
+			TreeMap.Entry<K, V> lastReturned;
+			TreeMap.Entry<K, V> next;
+			final K fenceKey;
+			int expectedModCount;
 			
-			abstract class SubMapIterator<T> implements Iterator<T> {
-				TreeMap.Entry<K, V> lastReturned;
-				TreeMap.Entry<K, V> next;
-				final K fenceKey;
-				int expectedModCount;
-				
-				SubMapIterator(TreeMap.Entry<K, V> first, TreeMap.Entry<K,V> fence) {
-					expectedModCount = m.modCount;
-					lastReturned = null;
-					next = first;
-					fenceKey = fence == null ? null : fence.key;
-				}
-				
-				public final boolean hasNext() {
-					return next != null && next.key != fenceKey;
-				}
-				
-				final TreeMap.Entry<K, V> nextEntry() {
-					TreeMap.Entry<K, V> e = next;
-					if(e == null || e.key == fenceKey) {
-						throw new NoSuchElementException();
-					}
-					if(m.modCount != expectedModCount) {
-						throw new ConcurrentModificationException();
-					}
-					next = successor(e);
-					lastReturned = e;
-					return e ;
-				}
-				
-				final TreeMap.Entry<K, V> prevEntry() {
-					TreeMap.Entry<K, V> e = next;
-					if(e == null || e.key == fenceKey) {
-						throw new NoClassDefFoundError();
-					}
-					if(m.modCount != expectedModCount) {
-						throw new ConcurrentModificationException();
-					}
-					next = predecessor(e);
-					lastReturned = e;
-					return e;
-				}
-				
-				final void removeAscending() {
-					if(lastReturned == null) {
-						throw new IllegalSelectorException();
-					}
-					if(m.modCount != expectedModCount) {
-						throw new ConcurrentModificationException();
-					}
-					
-					if(lastReturned.left != null && lastReturned.right != null) {
-						next = lastReturned;
-					}
-					m.deleteEntry(lastReturned);
-					lastReturned = null;
-					expectedModCount = m.modCount;
-				}
-				
-				final void removeDescending() {
-					if(lastReturned == null) {
-						throw new IllegalSelectorException();
-					}
-					if(m.modCount != expectedModCount) {
-						throw new ConcurrentModificationException();
-					}
-					m.deleteEntry(lastReturned);
-					lastReturned = null;
-					expectedModCount = m.modCount;
-				}
+			SubMapIterator(TreeMap.Entry<K, V> first, TreeMap.Entry<K,V> fence) {
+				expectedModCount = m.modCount;
+				lastReturned = null;
+				next = first;
+				fenceKey = fence == null ? null : fence.key;
 			}
 			
-			final class SubMapEntryIterator extends SubMapIterator<Map.Entry<K, V>> {
-
-				SubMapEntryIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
-					super(first, fence);
-				}
-
-				@Override
-				public Map.Entry<K, V> next() {
-					return nextEntry();
-				}
-
-				@Override
-				public void remove() {
-					removeAscending();
-				}
+			public final boolean hasNext() {
+				return next != null && next.key != fenceKey;
 			}
 			
-			final class SubMapKeyIterator extends SubMapIterator<Map.Entry<K,V>> {
-
-				SubMapKeyIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
-					super(first, fence);
+			final TreeMap.Entry<K, V> nextEntry() {
+				TreeMap.Entry<K, V> e = next;
+				if(e == null || e.key == fenceKey) {
+					throw new NoSuchElementException();
 				}
-
-				@Override
-				public Map.Entry<K,V> next() {
-					return nextEntry();
+				if(m.modCount != expectedModCount) {
+					throw new ConcurrentModificationException();
 				}
-
-				@Override
-				public void remove() {
-					removeAscending();
-				}
+				next = successor(e);
+				lastReturned = e;
+				return e ;
 			}
 			
-			// TODO
+			final TreeMap.Entry<K, V> prevEntry() {
+				TreeMap.Entry<K, V> e = next;
+				if(e == null || e.key == fenceKey) {
+					throw new NoClassDefFoundError();
+				}
+				if(m.modCount != expectedModCount) {
+					throw new ConcurrentModificationException();
+				}
+				next = predecessor(e);
+				lastReturned = e;
+				return e;
+			}
+			
+			final void removeAscending() {
+				if(lastReturned == null) {
+					throw new IllegalSelectorException();
+				}
+				if(m.modCount != expectedModCount) {
+					throw new ConcurrentModificationException();
+				}
+				
+				if(lastReturned.left != null && lastReturned.right != null) {
+					next = lastReturned;
+				}
+				m.deleteEntry(lastReturned);
+				lastReturned = null;
+				expectedModCount = m.modCount;
+			}
+			
+			final void removeDescending() {
+				if(lastReturned == null) {
+					throw new IllegalSelectorException();
+				}
+				if(m.modCount != expectedModCount) {
+					throw new ConcurrentModificationException();
+				}
+				m.deleteEntry(lastReturned);
+				lastReturned = null;
+				expectedModCount = m.modCount;
+			}
+		}
+		
+		final class SubMapEntryIterator extends SubMapIterator<Map.Entry<K, V>> {
+
+			SubMapEntryIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
+				super(first, fence);
+			}
+
+			@Override
+			public Map.Entry<K, V> next() {
+				return nextEntry();
+			}
+
+			@Override
+			public void remove() {
+				removeAscending();
+			}
+		}
+		
+		final class SubMapKeyIterator extends SubMapIterator<K> {
+
+			SubMapKeyIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
+				super(first, fence);
+			}
+
+			@Override
+			public K next() {
+                return nextEntry().key;
+            }
+
+			@Override
+			public void remove() {
+				removeAscending();
+			}
+		}
+		
+		final class DescendingSubMapEntryIterator extends SubMapIterator<Map.Entry<K, V>> {
+
+			DescendingSubMapEntryIterator(TreeMap.Entry<K, V> first,TreeMap.Entry<K, V> fence) {
+				super(first, fence);
+			}
+
+			@Override
+			public Map.Entry<K, V> next() {
+				return prevEntry();
+			}
+
+			@Override
+			public void remove() {
+				removeDescending();
+			}
+			
+		}
+		
+		final class DescendingSubMapKeyIterator extends SubMapIterator<K> {
+
+			DescendingSubMapKeyIterator(TreeMap.Entry<K, V> last,TreeMap.Entry<K, V> fence) {
+				super(last, fence);
+			}
+
+			@Override
+			public K next() {
+				return prevEntry().key;
+			}
+
+			@Override
+			public void remove() {
+				removeDescending();
+			}
 		}
 	}
+	
+	static final class AscendingSubMap<K, V> extends NavigableSubMap<K, V> {
+
+		private static final long serialVersionUID = 1L;
+
+		AscendingSubMap(TreeMap<K, V> m, boolean fromStart, K lo,
+				boolean loInclusive, boolean toEnd, K hi,
+				boolean hiInclusive) {
+			super(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive);
+		}
+
+		@Override
+		public Comparator<? super K> comparator() {
+			return m.comparator();
+		}
+		
+		@Override
+		public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
+				K toKey, boolean toInclusive) {
+			if(!inRange(fromKey, fromInclusive)) {
+				throw new IllegalArgumentException("fromKey out of range");
+			}
+			
+			if(!inRange(toKey, toInclusive)) {
+				throw new IllegalArgumentException("toKey out of range");
+			}
+			
+			return new AscendingSubMap(m, false, fromKey, fromInclusive, false, toKey, toInclusive);
+		}
+		
+		@Override
+		public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
+			if(!inRange(toKey, inclusive)) {
+				throw new IllegalArgumentException("toKey out of range");
+			}
+			return new AscendingSubMap(m, fromStart, lo, loInclusive, false, toKey, inclusive);
+		}
+		
+		@Override
+		public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
+			if (!inRange(fromKey, inclusive))
+				throw new IllegalArgumentException("fromKey out of range");
+			return new AscendingSubMap(m, false, fromKey, inclusive, toEnd, hi, hiInclusive);
+		}
+		
+		@Override
+		public NavigableMap<K, V> descendingMap() {
+			NavigableMap<K, V> mv = descendingMapView;
+			return (mv != null) ? mv : (descendingMapView = new DescendingSubMap(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive));
+		}
+		
+		@Override
+		Iterator<K> keyIterator() {
+			return new SubMapKeyIterator(absLowest(), absHighFence());
+		}
+		
+		@Override
+		Iterator<K> descendingKeyIterator() {
+			return new DescendingSubMapKeyIterator(absHighest(), absLowFence());
+		}
+		
+		final class AscendingEntrySetView extends EntrySetView{
+			public Iterator<Map.Entry<K, V>> iterator() {
+				return new SubMapEntryIterator(absLowest(), absHighest());
+			}
+		}
+		
+		@Override
+		public Set<Map.Entry<K, V>> entrySet() {
+			EntrySetView es = entrySetView;
+			return (es != null) ? es : new AscendingEntrySetView();
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subLowest() {
+			return absLowest();
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subHighest() {
+			return absHighest();
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subCeiling(K key) {
+			return absCeiling(key);
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subHigher(K key) {
+			return absHigher(key);
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subFloor(K key) {
+			return absFloor(key);
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subLower(K key) {
+			return absLower(key);
+		}
+
+	}
+	
+	
+	static final class DescendingSubMap<K, V> extends NavigableSubMap<K, V> {
+		
+		public DescendingSubMap(TreeMap<K,V> m, 
+				boolean fromStart, K lo, boolean loInclusive,
+				boolean toEnd, 	   K hi, boolean hiInclusive) {
+			super(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive);
+		}
+		
+	
+		@Override
+		public NavigableMap<K, V> descendingMap() {
+			return null;
+		}
+
+		@Override
+		public Comparator<? super K> comparator() {
+			return null;
+		}
+
+		@Override
+		public SortedMap<K, V> subMap(K fromKey, K toKey) {
+			return null;
+		}
+
+		@Override
+		public SortedMap<K, V> headMap(K toKey) {
+			return null;
+		}
+
+		@Override
+		public SortedMap<K, V> tailMap(K fromKey) {
+			return null;
+		}
+
+		@Override
+		public K firstKey() {
+			return null;
+		}
+
+		@Override
+		public Set<Map.Entry<K, V>> entrySet() {
+			return null;
+		}
+
+		@Override
+		public NavigableSet<K> navigableKeySet() {
+			return null;
+		}
+
+		@Override
+		public NavigableSet<K> descendingKeySet() {
+			return null;
+		}
+
+		@Override
+		public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
+				K toKey, boolean toInclusive) {
+			return null;
+		}
+
+		@Override
+		public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
+			return null;
+		}
+
+		@Override
+		public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
+			return null;
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subLowest() {
+			return null;
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subHighest() {
+			return null;
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subCeiling(K key) {
+			return null;
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subHigher(K key) {
+			return null;
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subFloor(K key) {
+			return null;
+		}
+
+		@Override
+		TreeMap.Entry<K, V> subLower(K key) {
+			return null;
+		}
+
+		@Override
+		Iterator<K> keyIterator() {
+			return null;
+		}
+
+		@Override
+		Iterator<K> descendingKeyIterator() {
+			return null;
+		}
+	}
+	// TODO
 	
 	
 	private static <K, V> boolean colorOf(Entry<K, V> p) {
@@ -1631,304 +1903,8 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 	
  	
 	
-	static final class AscendingSubMap<K, V> extends NavigableSubMap<K, V> {
-
-		AscendingSubMap(TreeMap<K, V> m, 
-				boolean fromStart, K lo, boolean loInclusive, 
-				boolean toEnd, 	   K hi, boolean hiInclusive) {
-			super(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive);
-		}
-
-		@Override
-		public Comparator<? super K> comparator() {
-			return m.comparator();
-		}
-		
-		@Override
-		public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
-				K toKey, boolean toInclusive) {
-			
-			return null;
-		}
-
-		
-		@Override
-		public Map.Entry<K, V> firstEntry() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Map.Entry<K, V> lastEntry() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Map.Entry<K, V> pollLastEntry() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> descendingMap() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<K> navigableKeySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<K> descendingKeySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedMap<K, V> subMap(K fromKey, K toKey) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedMap<K, V> headMap(K toKey) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedMap<K, V> tailMap(K fromKey) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-
-		@Override
-		public K firstKey() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Set<com.jerry.soundcode.map.Map.Entry<K, V>> entrySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subLowest() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subHighest() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subCeiling(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subHigher(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subFloor(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subLower(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		Iterator<K> keyIterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		Iterator<K> descendingKeyIterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-	}
 	
-	static final class DescendingSubMap<K, V> extends NavigableSubMap<K, V> {
-		
-		public DescendingSubMap(TreeMap<K,V> m, 
-				boolean fromStart, K lo, boolean loInclusive,
-				boolean toEnd, 	   K hi, boolean hiInclusive) {
-			super(m, fromStart, lo, loInclusive, toEnd, hi, hiInclusive);
-		}
-		
 	
-		@Override
-		public Map.Entry<K, V> firstEntry() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Map.Entry<K, V> lastEntry() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Map.Entry<K, V> pollLastEntry() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> descendingMap() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Comparator<? super K> comparator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedMap<K, V> subMap(K fromKey, K toKey) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedMap<K, V> headMap(K toKey) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SortedMap<K, V> tailMap(K fromKey) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public K firstKey() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Set<Map.Entry<K, V>> entrySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<K> navigableKeySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableSet<K> descendingKeySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
-				K toKey, boolean toInclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subLowest() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subHighest() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subCeiling(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subHigher(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subFloor(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		com.jerry.soundcode.map.TreeMap.Entry<K, V> subLower(K key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		Iterator<K> keyIterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		Iterator<K> descendingKeyIterator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-	}
 	
 	
 
