@@ -4,8 +4,10 @@ import java.io.Serializable;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.jerry.soundcode.list.Collection;
+import com.jerry.soundcode.list.Iterator;
 import com.jerry.soundcode.map.AbstractMap;
 import com.jerry.soundcode.map.Map;
+import com.jerry.soundcode.set.AbstractSet;
 import com.jerry.soundcode.set.Set;
 
 public class ConcurrentHashMap<K, V> extends AbstractMap<K, V> 
@@ -48,36 +50,6 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		return segments[(hash >>> segemtnShift) & segmentMask];
 	}
 	
-	@Override
-	public V putIfAbsent(K key, V value) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean remove(Object key, Object value) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean replace(K key, V oldValue, V newValue) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public V replace(K key, V value) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Set<com.jerry.soundcode.map.Map.Entry<K, V>> entrySet() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	static final class HashEntry<K, V> {
 		final K key;
 		final int hash;
@@ -153,6 +125,19 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 				}
 			}
 			return null;
+		}
+		
+		boolean containsKey(Object key, int hash) {
+			if(count != 0) {
+				HashEntry<K, V> e = getFirst(hash);
+				while(e != null) {
+					if(e.hash == hash && key.equals(e.key)) {
+						return true;
+					}
+					e = e.next;
+				}
+			}
+			return false;
 		}
 		
 		boolean containsValue(Object value) {
@@ -291,11 +276,60 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 			}
 			table = newTable;
 		}
-
-		public boolean containsKey(Object key, int hash) {
-			// TODO Auto-generated method stub
-			return false;
+		
+		V remove(Object key, int hash, Object value) {
+			lock();
+			try {
+				int c = count - 1;
+				HashEntry<K, V>[] tab = table;
+				int index = hash & (tab.length - 1);
+				HashEntry<K, V> first = tab[index];
+				HashEntry<K, V> e = first;
+				
+				while(e != null && (e.hash != hash || !key.equals(e.key))) {
+					e = e.next;
+				}
+				
+				V oldValue = null;
+				if(e != null) {
+					V v = e.value;
+					if(value == null || value.equals(v)) {
+						oldValue = v;
+						++modCount;
+						HashEntry<K, V> newFirst = e.next;
+						
+						for(HashEntry<K, V> p = first; p != e; p = p.next) {
+							newFirst = new HashEntry<K, V> (p.key, p.hash, newFirst, p.value);
+						}
+						
+						tab[index] = newFirst;
+						count = c;
+					}
+				}
+				return oldValue;
+			} finally {
+				unlock();
+			}
 		}
+
+		void clear() {
+			if(count != 0) {
+				lock();
+				
+				try {
+					HashEntry<K, V>[] tab = table;
+					for(int i = 0; i < tab.length; i++) {
+						tab[i] = null;
+					}
+					++modCount;
+					count = 0;
+				} finally {
+					unlock();
+				}
+			}
+		}
+		
+		
  	}
 	
 	public ConcurrentHashMap(int initialCapacity, float loadFactor, int concurrencyLeven) {
@@ -504,5 +538,89 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		}
 		int hash = hash(key.hashCode());
 		return segmentFor(hash).put(key, hash, value, false);
+	}
+	
+	
+	
+	@Override
+	public V putIfAbsent(K key, V value) {
+		if(value == null) {
+			throw new NullPointerException();
+		}
+		int hash = hash(key.hashCode());
+		return segmentFor(hash).put(key, hash, value, true);
+	}
+	
+	public void putAll(Map<? extends K, ? extends V> m) {
+//		for(Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
+//			put(e.getKey(), e.getValue());
+//		}
+	}
+	
+	public V remove(Object key) {
+		int hash = hash(key.hashCode());
+		return segmentFor(hash).remove(key, hash, null);
+	
+	}
+
+	@Override
+	public boolean remove(Object key, Object value) {
+		int hash = hash(key.hashCode());
+		if(value == null) {
+			return false;
+		}
+		return segmentFor(hash).remove(key, hash, value) != null;
+	}
+
+	@Override
+	public boolean replace(K key, V oldValue, V newValue) {
+		if(oldValue == null || newValue == null) {
+			throw new NullPointerException();
+		}
+		int hash = hash(key.hashCode());
+		return segmentFor(hash).replace(key, hash, oldValue, newValue);
+	}
+
+	@Override
+	public V replace(K key, V value) {
+		if(value == null) {
+			throw new NullPointerException();
+		}
+		int hash = hash(key.hashCode());
+		return segmentFor(hash).replace(key, hash, value);
+	}
+	
+	public void clear() {
+		for(int i = 0; i < segments.length; ++i) {
+			segments[i].clear();
+		}
+	}
+	
+	public Set<K> keySet() {
+		Set<K> ks = keySet;
+		return (ks != null) ? ks : (keySet = new KeySet());
+	}
+	
+	
+
+	@Override
+	public Set<com.jerry.soundcode.map.Map.Entry<K, V>> entrySet() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	final class KeySet extends AbstractSet<K> {
+
+		@Override
+		public Iterator<K> iterator() {
+			return null;
+		}
+
+		@Override
+		public int size() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+		
 	}
 }
