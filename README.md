@@ -1,4 +1,4 @@
-	Java 源码分析
+Java 源码分析
 ===================
 1. 基础集合
 	Arrays
@@ -78,11 +78,19 @@
 	ExtClassLoader
 7. Java IO&Java NIO
 
+8. Guava
+	
+
 相关技术博客
 ================================
 Java并发包源码解析
 http://www.iteye.com/blogs/subjects/JUC_SCA?page=2
+
 OpenJDK源代码阅读
 http://blog.csdn.net/column/details/openjdk-src-reading.html
+
 java中queue的使用
 http://www.cnblogs.com/end/archive/2012/10/25/2738493.html
+
+从零开始学Guava
+http://blog.csdn.net/column/details/getting0-1guava.html
