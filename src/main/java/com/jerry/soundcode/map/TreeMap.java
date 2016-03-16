@@ -1564,8 +1564,158 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return null;
 		}
 	}
-	// TODO
 	
+	private class SubMap extends AbstractMap<K, V> 
+		implements SortedMap<K, V> , Serializable {
+		
+		private boolean fromStart = false, toEnd = false;
+		private K fromKey, toKey;
+		
+		private Object readResolve() {
+			return new AscendingSubMap(TreeMap.this, fromStart, fromKey, true, toEnd, toKey, false);
+		}
+		
+		@Override
+		public Set<Map.Entry<K,V>> entrySet() { throw new InternalError(); }
+        
+		@Override
+		public K lastKey() { throw new InternalError(); }
+        
+		@Override
+		public K firstKey() { throw new InternalError(); }
+        
+		@Override
+		public SortedMap<K,V> subMap(K fromKey, K toKey) { throw new InternalError(); }
+        
+		@Override
+		public SortedMap<K,V> headMap(K toKey) { throw new InternalError(); }
+        
+		@Override
+		public SortedMap<K,V> tailMap(K fromKey) { throw new InternalError(); }
+        
+		@Override
+		public Comparator<? super K> comparator() { throw new InternalError(); }
+		
+	}
+	
+	private static final boolean RED = false;
+	private static final boolean BLACK = true;
+	
+	static final class Entry<K, V> implements Map.Entry<K, V> {
+		
+		K key;
+		V value;
+		Entry<K, V> left = null;
+		Entry<K, V> right = null;
+		Entry<K, V> parent;
+		boolean color = BLACK;
+		
+		Entry(K key, V value, Entry<K, V> parent) {
+			this.key = key;
+			this.value = value;
+			this.parent = parent;
+		}
+		
+		@Override
+		public K getKey() {
+			return key;
+		}
+
+		@Override
+		public V getValue() {
+			return value;
+		}
+
+		@Override
+		public V setValue(V value) {
+			V oldValue = this.value;
+			this.value = value;
+			return oldValue;
+		}
+		
+		@Override
+		public boolean equals(Object o) {
+			if(! (o instanceof Map.Entry)) {
+				return false;
+			}
+			
+			Map.Entry<K, V> e = (Map.Entry<K, V>) o;
+			return valEquals(key, e.getKey()) && valEquals(value, e.getValue());
+		}
+		
+		@Override
+		public int hashCode() {
+			int keyHash = (key == null ? 0 : key.hashCode());
+			int valueHash = (value == null ? 0 : value.hashCode());
+			return keyHash ^ valueHash;
+		}
+		
+		@Override
+		public String toString() {
+			return key + "=" + value;
+		}
+	}
+	
+	final Entry<K, V> getFirstEntry() {
+		Entry<K, V> p = root;
+		if(p != null) {
+			while(p.left != null) {
+				p = p.left;
+			}
+		}
+		return p;
+	}
+	
+	final Entry<K, V> getLastEntry() {
+		Entry<K, V> p = root;
+		if(p != null) {
+			while(p.right != null) {
+				p = p.right;
+			}
+		}
+		return p;
+	}
+	
+	static <K, V> TreeMap.Entry<K, V> successor(Entry<K, V> e) {
+		if(e == null) {
+			return null;
+		} else if(e.right != null) {
+			Entry<K, V> p = e.right;
+			while(p.left != null) {
+				p = p.left;
+			}
+			return p;
+		} else {
+			Entry<K, V> p = e.parent;
+			Entry<K, V> ch = e;
+			while(p != null && ch == p.right) {
+				ch = p;
+				p = p.parent;
+			}
+			return p;
+		}
+	}
+	
+	static <K, V> Entry<K, V> predecessor(Entry<K, V> t) {
+		if(t == null) {
+			return null;
+		} else if(t.left != null) {
+			Entry<K, V> p = t.left;
+			while(p.right != null) {
+				p = p.right;
+			}
+			return p;
+		} else {
+			Entry<K, V> p = t.parent;
+			Entry<K, V> ch = t;
+			while(p != null && ch == p.left) {
+				ch = p;
+				p = p.parent;
+			}
+			return p;
+		}
+		
+	}
 	
 	private static <K, V> boolean colorOf(Entry<K, V> p) {
 		return (p == null ? BLACK : p.color); 
@@ -1774,140 +1924,6 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 		setColor(x, BLACK);
 	}
-	
-
-	
-
-	
-	final Entry<K, V> getFirstEntry() {
-		Entry<K, V> p = root;
-		if(p != null) {
-			while(p.left != null) {
-				p = p.left;
-			}
-		}
-		return p;
-	}
-	
-	final Entry<K, V> getLastEntry() {
-		Entry<K, V> p = root;
-		if(p != null) {
-			while(p.right != null) {
-				p = p.right;
-			}
-		}
-		return p;
-	}
-	
-	static <K, V> TreeMap.Entry<K, V> successor(Entry<K, V> e) {
-		if(e == null) {
-			return null;
-		} else if(e.right != null) {
-			Entry<K, V> p = e.right;
-			while(p.left != null) {
-				p = p.left;
-			}
-			return p;
-		} else {
-			Entry<K, V> p = e.parent;
-			Entry<K, V> ch = e;
-			while(p != null && ch == p.right) {
-				ch = p;
-				p = p.parent;
-			}
-			return p;
-		}
-	}
-	
-	static <K, V> Entry<K, V> predecessor(Entry<K, V> t) {
-		if(t == null) {
-			return null;
-		} else if(t.left != null) {
-			Entry<K, V> p = t.left;
-			while(p.right != null) {
-				p = p.right;
-			}
-			return p;
-		} else {
-			Entry<K, V> p = t.parent;
-			Entry<K, V> ch = t;
-			while(p != null && ch == p.left) {
-				ch = p;
-				p = p.parent;
-			}
-			return p;
-		}
-		
-	}
-
-	private static final boolean RED = false;
-	private static final boolean BLACK = true;
-	
-	static final class Entry<K, V> implements Map.Entry<K, V> {
-		
-		K key;
-		V value;
-		Entry<K, V> left = null;
-		Entry<K, V> right = null;
-		Entry<K, V> parent;
-		boolean color = BLACK;
-		
-		Entry(K key, V value, Entry<K, V> parent) {
-			this.key = key;
-			this.value = value;
-			this.parent = parent;
-		}
-		
-		@Override
-		public K getKey() {
-			return key;
-		}
-
-		@Override
-		public V getValue() {
-			return value;
-		}
-
-		@Override
-		public V setValue(V value) {
-			V oldValue = this.value;
-			this.value = value;
-			return oldValue;
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			if(! (o instanceof Map.Entry)) {
-				return false;
-			}
-			
-			Map.Entry<K, V> e = (Map.Entry<K, V>) o;
-			return valEquals(key, e.getKey()) && valEquals(value, e.getValue());
-		}
-		
-		@Override
-		public int hashCode() {
-			int keyHash = (key == null ? 0 : key.hashCode());
-			int valueHash = (value == null ? 0 : value.hashCode());
-			return keyHash ^ valueHash;
-		}
-		
-		@Override
-		public String toString() {
-			return key + "=" + value;
-		}
-	}
-	
-	
-	
-	
- 	
-	
-	
-	
-	
-	
-
 	
 	private void writeObject(ObjectOutputStream s) throws IOException, ClassNotFoundException {
 		s.defaultWriteObject();
