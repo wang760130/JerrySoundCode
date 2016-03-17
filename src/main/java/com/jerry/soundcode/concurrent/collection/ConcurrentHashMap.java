@@ -1,9 +1,12 @@
 package com.jerry.soundcode.concurrent.collection;
 
 import java.io.Serializable;
+import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.jerry.soundcode.list.AbstractCollection;
 import com.jerry.soundcode.list.Collection;
+import com.jerry.soundcode.list.Enumeration;
 import com.jerry.soundcode.list.Iterator;
 import com.jerry.soundcode.map.AbstractMap;
 import com.jerry.soundcode.map.Map;
@@ -386,6 +389,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		this(Math.max((int)(m.size() / DEFAULT_LOAD_FACTOR) + 1, DEFAULT_INITIAL_CAPACITY), DEFAULT_LOAD_FACTOR, DEFAULT_CONCURRENCY_LEVEL);
 	}
 	
+	@Override
 	public boolean isEmpty() {
 		final Segment<K, V>[] segments = this.segments;
 		
@@ -410,6 +414,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		return true;
 	}
 	
+	@Override
 	public int size() {
 		final Segment<K,V>[] segments = this.segments;
 		long sum = 0;
@@ -462,16 +467,19 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@Override
 	public V get(Object key) {
 		int hash = hash(key.hashCode());
 		return segmentFor(hash).get(key, hash);
 	}
 	
+	@Override
 	public boolean containsKey(Object key) {
 		int hash = hash(key.hashCode());
 		return segmentFor(hash).containsKey(key, hash);
 	}
 	
+	@Override
 	public boolean containsValue(Object value) {
 		if(value == null) {
 			throw new NullPointerException();
@@ -532,6 +540,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		return containsValue(value);
 	}
 	
+	@Override
 	public V put(K key, V value) {
 		if(value == null) {
 			throw new NullPointerException();
@@ -539,8 +548,6 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		int hash = hash(key.hashCode());
 		return segmentFor(hash).put(key, hash, value, false);
 	}
-	
-	
 	
 	@Override
 	public V putIfAbsent(K key, V value) {
@@ -551,12 +558,14 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		return segmentFor(hash).put(key, hash, value, true);
 	}
 	
+	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 //		for(Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
 //			put(e.getKey(), e.getValue());
 //		}
 	}
 	
+	@Override
 	public V remove(Object key) {
 		int hash = hash(key.hashCode());
 		return segmentFor(hash).remove(key, hash, null);
@@ -590,37 +599,202 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		return segmentFor(hash).replace(key, hash, value);
 	}
 	
+	@Override
 	public void clear() {
 		for(int i = 0; i < segments.length; ++i) {
 			segments[i].clear();
 		}
 	}
 	
+	@Override
 	public Set<K> keySet() {
 		Set<K> ks = keySet;
 		return (ks != null) ? ks : (keySet = new KeySet());
 	}
 	
-	
-
 	@Override
-	public Set<com.jerry.soundcode.map.Map.Entry<K, V>> entrySet() {
+	public Collection<V> values() {
+		Collection<V> vs = values;
+		return (vs != null) ? vs : (values = new Values());
+	}
+	
+	// TODO
+	@Override
+	public Set<Map.Entry<K, V>> entrySet() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	abstract class HashIterator {
+		int nextSegmentIndex;
+		int nextTableIndex;
+		
+		HashEntry<K, V>[] currentTable;
+		HashEntry<K, V> nextEntry;
+		HashEntry<K, V> lastReturned;
+		
+		HashIterator() {
+			nextSegmentIndex = segments.length - 1;
+			nextTableIndex = -1;
+			advance();
+		}
+		
+		public boolean hasMoreElements() {
+			return hasNext();
+		}
+		
+		final void advance() {
+			if(nextEntry != null && (nextEntry = nextEntry.next) != null) {
+				return ;
+			}
+			
+			while(nextTableIndex >= 0) {
+				if( (nextEntry = currentTable[nextTableIndex--]) != null) {
+					return ;
+				}
+			}
+			
+			while(nextSegmentIndex >= 0) {
+				Segment<K, V> seg = segments[nextSegmentIndex--];
+				if(seg.count != 0) {
+					currentTable = seg.table;
+					for(int j = currentTable.length - 1; j >= 0; --j) {
+						if( (nextEntry = currentTable[j]) != null) {
+							nextTableIndex = j - 1;
+							return ;
+						}
+					}
+				}
+			}
+		}
+		
+		public boolean hasNext() {
+			return nextEntry != null;
+		}
+		
+		HashEntry<K, V> nextEntry() {
+			if(nextEntry == null) {
+				throw new NoSuchElementException();
+			}
+			lastReturned = nextEntry;
+			advance();
+			return lastReturned;
+		}
+		
+		public void remove() {
+			if(lastReturned == null) {
+				throw new IllegalArgumentException();
+			}
+			ConcurrentHashMap.this.remove(lastReturned.key);
+			lastReturned = null;
+		}
+	}
+	
+	final class KeyIterator extends HashIterator implements Iterator<K>, Enumeration<K> {
+
+		@Override
+		public K next() {
+			return super.nextEntry().key;
+		}
+
+		@Override
+		public K nextElement() {
+			return super.nextEntry().key;
+		}
+	}
+	
+	
+	final class ValueIterator extends HashIterator implements Iterator<V>, Enumeration<V> {
+
+		@Override
+		public V next() {
+			return super.nextEntry().value;
+		}
+		
+		@Override
+		public V nextElement() {
+			return super.nextEntry().value;
+		}
+	}
+	
+	final class WriteThroughEntry extends AbstractMap.SimpleEntry<K, V> {
+
+		public WriteThroughEntry(K k, V v) {
+			super(k, v);
+		}
+		
+		@Override
+		public V setValue(V value) {
+			if(value == null) {
+				throw new NullPointerException();
+			}
+			
+			V v = super.setValue(value);
+			ConcurrentHashMap.this.put(getKey(), value);
+			return v;
+		}
+	}
+	
+	final class EntryIterator extends HashIterator implements Iterator<Entry<K,V>> {
+
+		@Override
+		public Map.Entry<K, V> next() {
+			HashEntry<K, V> e = super.nextEntry();
+			return new WriteThroughEntry(e.key, e.value);
+		}
 	}
 	
 	final class KeySet extends AbstractSet<K> {
 
 		@Override
 		public Iterator<K> iterator() {
-			return null;
+			return new KeyIterator();
 		}
 
 		@Override
 		public int size() {
-			// TODO Auto-generated method stub
-			return 0;
+			return ConcurrentHashMap.this.size();
+		}
+		
+		@Override
+		public boolean contains(Object o) {
+			return ConcurrentHashMap.this.containsKey(o);
+		}
+		
+		@Override
+		public boolean remove(Object o) {
+			return ConcurrentHashMap.this.remove(o) != null;
+		}
+		
+		@Override
+		public void clear() {
+			ConcurrentHashMap.this.clear();
 		}
 		
 	}
+ 	
+	final class Values extends AbstractCollection<V> {
+
+		@Override
+		public Iterator<V> iterator() {
+			return new ValueIterator();
+		}
+
+		@Override
+		public int size() {
+			return ConcurrentHashMap.this.size();
+		}
+		
+		@Override
+		public boolean contains(Object o) {
+			return ConcurrentHashMap.this.containsValue(o);
+		}
+		
+		@Override
+		public void clear() {
+			ConcurrentHashMap.this.clear();
+		}
+	}
+	
+	// TODO
 }
