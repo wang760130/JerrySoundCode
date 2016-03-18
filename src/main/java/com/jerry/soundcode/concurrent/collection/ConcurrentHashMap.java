@@ -1,5 +1,8 @@
 package com.jerry.soundcode.concurrent.collection;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -618,11 +621,19 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		return (vs != null) ? vs : (values = new Values());
 	}
 	
-	// TODO
+	
 	@Override
 	public Set<Map.Entry<K, V>> entrySet() {
-		// TODO Auto-generated method stub
-		return null;
+		Set<Map.Entry<K, V>> es = entrySet;
+		return (es != null) ? es : (entrySet = new EntrySet());
+	}
+	
+	public Enumeration<K> keys() {
+		return new KeyIterator();
+	}
+	
+	public Enumeration<V> elements() {
+		return new ValueIterator();
 	}
 	
 	abstract class HashIterator {
@@ -796,5 +807,85 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	final class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+
+		@Override
+		public Iterator<Map.Entry<K, V>> iterator() {
+			return new EntryIterator();
+		}
+		
+		@Override
+		public boolean contains(Object o) {
+			if(!(o instanceof Map.Entry)) {
+				return false;
+			}
+			
+			Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
+			V v = ConcurrentHashMap.this.get(e.getKey());
+			return v != null && v.equals(e.getValue());
+ 		}
+		
+		@Override
+		public boolean remove(Object o) {
+			if(!(o instanceof Map.Entry)) {
+				return false;
+			}
+			
+			Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
+			return ConcurrentHashMap.this.remove(e.getKey(), e.getValue());
+		}
+		
+		@Override
+		public int size() {
+			return ConcurrentHashMap.this.size();
+		}
+		
+		@Override
+		public void clear() {
+			ConcurrentHashMap.this.clear();
+		}
+		
+	}
+	
+	private void writeObject(ObjectOutputStream s) throws IOException {
+		s.defaultWriteObject();
+		
+		for(int k = 0; k < segments.length; ++k) {
+			Segment<K, V> seg = segments[k];
+			seg.lock();
+			
+			try {
+				HashEntry<K,V>[] tab = seg.table;
+				for(int i = 0; i < tab.length; ++i) {
+					for(HashEntry<K, V> e = tab[i]; e != null; e = e.next) {
+						s.writeObject(e.key);
+						s.writeObject(e.value);
+					}
+				}
+			} finally {
+				seg.unlock();
+			}
+		}
+		
+		s.writeObject(null);
+		s.writeObject(null);
+	}
+	
+	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		
+		for(int i = 0; i < segments.length; ++i) {
+			segments[i].setTable(new HashEntry[1]);
+		}
+		
+		for(;;) {
+			K key = (K) s.readObject();
+			V value = (V) s.readObject();
+			if(key == null) {
+				break;
+			}
+			put(key, value);
+		}
+	}
 	// TODO
 }
