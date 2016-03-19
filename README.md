@@ -70,7 +70,7 @@ Java 源码分析
 4. 多线程
 	Runnable
 	Thread
-	Callbale
+	Callable
 	Executor
 5. 线程池
 	ThreadLocal
