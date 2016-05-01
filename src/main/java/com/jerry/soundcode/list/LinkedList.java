@@ -102,6 +102,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		return addAll(size, c);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean addAll(int index, Collection<? extends T> c) {
 		if(index < 0 || index > size) {
@@ -182,6 +183,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		return e;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public int indexOf(Object o) {
 		int index = 0;
@@ -203,6 +205,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		return -1;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public int lastIndexOf(Object o) {
 		int index = size;
@@ -490,11 +493,13 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		return result;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<T> descendingIterator() {
 		return new DescendingIterator();
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private class DescendingIterator implements Iterator {
 
 		final ListItr itr = new ListItr(size());	
@@ -516,6 +521,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object clone() {
 		LinkedList<T> clone = null;
@@ -548,6 +554,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		return result;
 	}
 	
+	@SuppressWarnings({ "unchecked", "hiding" })
 	@Override
 	public <T> T[] toArray(T[] a) {
 		if(a.length < size) {
@@ -567,6 +574,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		return a;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private void writeObject(ObjectOutputStream s) throws IOException {
 		s.defaultWriteObject();
 		s.writeInt(size);
@@ -576,6 +584,7 @@ public class LinkedList<T> extends AbstractSequentialList<T>
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		
