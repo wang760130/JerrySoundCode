@@ -107,6 +107,7 @@ public class Vector<T> extends AbstractList<T>
 				return count < elementCount;
 			}
 
+			@SuppressWarnings("unchecked")
 			@Override
 			public T nextElement() {
 				synchronized(Vector.class) {
@@ -171,6 +172,7 @@ public class Vector<T> extends AbstractList<T>
 		return -1;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public synchronized T elementAt(int index) {
 		if(index >= elementCount) {
 			throw new ArrayIndexOutOfBoundsException(index + " >= " + elementCount);
@@ -178,6 +180,7 @@ public class Vector<T> extends AbstractList<T>
 		return (T) elementData[index];
 	}
 
+	@SuppressWarnings("unchecked")
 	public synchronized T firstElement() {
 		if(elementCount == 0) {
 			throw new NoSuchElementException();
@@ -185,6 +188,7 @@ public class Vector<T> extends AbstractList<T>
 		return (T) elementData[0];
 	}
 	
+	@SuppressWarnings("unchecked")
 	public synchronized T lastElement() {
 		if(elementCount == 0) {
 			throw new NoSuchElementException();
@@ -251,6 +255,7 @@ public class Vector<T> extends AbstractList<T>
 		elementCount = 0;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public synchronized Object clone() {
 		try {
@@ -268,6 +273,7 @@ public class Vector<T> extends AbstractList<T>
 		return Arrays.copyOf(elementData, elementCount);
 	}
 	
+	@SuppressWarnings({ "unchecked", "hiding" })
 	@Override
 	public synchronized <T> T[] toArray(T[] t) {
 		if(t.length < elementCount) {
@@ -283,6 +289,7 @@ public class Vector<T> extends AbstractList<T>
 		return t;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public T get(int index) {
 		if(index >= elementCount) {
@@ -291,6 +298,7 @@ public class Vector<T> extends AbstractList<T>
 		return (T) elementData[index];
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public synchronized T set(int index, T element) {
 		if(index >= elementCount) {
@@ -320,6 +328,7 @@ public class Vector<T> extends AbstractList<T>
 		insertElementAt(t, index);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public synchronized T remove(int index) {
 		modCount++;
