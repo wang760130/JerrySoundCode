@@ -53,6 +53,7 @@ public class TreeSet<T> extends AbstractSet<T>
 		return map.descendingKeySet().iterator();
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public NavigableSet<T> descendingSet() {
 		return new TreeSet(map.descendingMap());
@@ -88,6 +89,7 @@ public class TreeSet<T> extends AbstractSet<T>
 		map.clear();
 	}
 	
+	@SuppressWarnings("unchecked")
 	public boolean addAll(Collection<? extends T> c) {
 		if(map.size() == 0 && c.size() > 0 && 
 				c instanceof SortedSet && map instanceof TreeMap) {
@@ -187,6 +189,8 @@ public class TreeSet<T> extends AbstractSet<T>
 	}
 
 	
+	@SuppressWarnings("unchecked")
+	@Override
 	public Object clone() {
 		TreeSet<T> clone = null;
 		
@@ -200,6 +204,7 @@ public class TreeSet<T> extends AbstractSet<T>
 		return clone;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private void writeObject(ObjectOutputStream s) throws IOException {
 		s.defaultWriteObject();
 		s.writeObject(map.comparator());
@@ -210,6 +215,7 @@ public class TreeSet<T> extends AbstractSet<T>
 		} 
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		
