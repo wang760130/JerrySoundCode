@@ -20,6 +20,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 
 	private static final long serialVersionUID = 1L;
 
+	@SuppressWarnings("rawtypes")
 	private transient Entry[] table;
 	
 	private transient int count;
@@ -80,6 +81,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return this.<V>getEnumeration(VALUES);
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public synchronized boolean contains(Object value) {
 		if(value == null) {
 			throw new NullPointerException();
@@ -101,6 +103,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return contains(value);
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public synchronized boolean containsKey(Object key) {
 		Entry tab[] = table;
@@ -116,6 +119,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return false;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public synchronized V get(Object key) {
 		Entry tab[] = table;
@@ -129,6 +133,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return null;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected void rehash() {
 		int oldCapactiy = table.length;
 		Entry[] oldMap = table;
@@ -152,6 +157,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public synchronized V put(K key, V value) {
 		if(value == null) {
@@ -185,6 +191,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return null;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public synchronized V remove(Object key) {
 		Entry tab[] = table;
@@ -218,6 +225,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 //		}
  	}
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public synchronized void clear() {
 		Entry tab[] = table;
@@ -227,6 +235,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		count = 0;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public synchronized Object clone() {
 		try {
@@ -270,6 +279,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private <T> Enumeration<T> getEnumeration(int type) {
 		if(count == 0) {
 			return (Enumeration<T>)emptyEnumerator;
@@ -278,6 +288,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private <T> Iterator<T> getIterator(int type) {
 		if(count == 0) {
 			return (Iterator<T>)emptyIterator;
@@ -300,6 +311,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return keySet;
 	}
 	
+	@SuppressWarnings("unused")
 	private class KeySet extends AbstractSet<K> {
 		public Iterator<K> iterator() {
 			return getIterator(KEYS);
@@ -334,6 +346,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return entrySet;
 	}
 	
+	@SuppressWarnings("unused")
 	private class EntrySet extends AbstractSet<Map.Entry<K, V>> {
 		
 		@Override
@@ -341,6 +354,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			return getIterator(ENTRIES);
 		}
 		
+		@SuppressWarnings("rawtypes")
 		@Override
 		public boolean contains(Object o) {
 			if( !(o instanceof Map.Entry)) {
@@ -363,6 +377,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			return false;
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public boolean remove(Object o) {
 			if( ! (o instanceof Map.Entry)) {
@@ -414,6 +429,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return null;
 	}
 
+	@SuppressWarnings("unused")
 	private class ValueCollection extends AbstractCollection<V> {
 
 		@Override
@@ -438,6 +454,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public synchronized boolean equals(Object o) {
 		if(o == this) {
@@ -472,6 +489,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return true;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public synchronized int hashCode() {
 		int h = 0;
@@ -491,6 +509,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		return h;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private synchronized void writeObject(ObjectOutputStream s) throws IOException {
 		s.defaultWriteObject();
 		s.writeInt(table.length);
@@ -506,6 +525,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		
@@ -532,6 +552,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		this.table = table;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void reconstitutionPut(Entry[] tab, K key, V value) throws StreamCorruptedException {
 		if(value == null) {
 			throw new StreamCorruptedException();
@@ -564,6 +585,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			this.next = next;
 		}
 		
+		@SuppressWarnings("unchecked")
 		@Override
 		protected Object clone() {
 			return new Entry<K, V> (hash, key, value, (next == null ? null : (Entry<K, V>) next.clone()));
@@ -589,6 +611,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			return oldValue;
 		}
 		
+		@SuppressWarnings("rawtypes")
 		@Override
 		public boolean equals(Object o) {
 			if(!(o instanceof Map.Entry)) {
@@ -618,6 +641,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 	
 	private class Enumerator<T> implements Enumeration<T>, Iterator<T> {
 		
+		@SuppressWarnings("rawtypes")
 		Entry[] table = Hashtable.this.table;
 		int index = table.length;
 		Entry<K, V> entry = null;
@@ -633,6 +657,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			this.iterator = iterator;
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public boolean hasMoreElements() {
 			Entry<K, V> e = entry;
@@ -647,6 +672,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			return e != null;
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public T nextElement() {
 			Entry<K, V> et = entry;
@@ -680,6 +706,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 			return nextElement();
 		}
 
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public void remove() {
 			if(!iterator) {
@@ -718,7 +745,9 @@ public class Hashtable<K, V> extends Dictionary<K, V>
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private static Enumeration emptyEnumerator = new EmptyEnumerator();
+	@SuppressWarnings("rawtypes")
 	private static Iterator emptyIterator = new EmptyIterator();
 	
 	private static class EmptyEnumerator implements Enumeration<Object> {
