@@ -15,6 +15,7 @@ public interface Set<T> extends Collection<T> {
 	
 	Object[] toArray();
 	
+	@SuppressWarnings("hiding")
 	<T> T[] toArray(T[] a);
 	
 	boolean add(T t);
