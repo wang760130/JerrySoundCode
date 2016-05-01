@@ -218,6 +218,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
 	
 	public abstract Set<Entry<K,V>> entrySet();
 	
+	@SuppressWarnings({ "unchecked", "null" })
 	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
@@ -289,6 +290,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	protected Object clone() throws CloneNotSupportedException {
 		AbstractMap<K, V> result = (AbstractMap<K, V>) super.clone();
@@ -335,6 +337,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
 			return oldValue;
 		}
 		
+		@SuppressWarnings("unchecked")
 		@Override
 		public boolean equals(Object obj) {
 			if(!(obj instanceof Map.Entry)) {
@@ -388,6 +391,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
 			throw new UnsupportedOperationException();
 		}
 		
+		@SuppressWarnings("rawtypes")
 		@Override
 		public boolean equals(Object obj) {
 			if(!(obj instanceof Map.Entry)) {
