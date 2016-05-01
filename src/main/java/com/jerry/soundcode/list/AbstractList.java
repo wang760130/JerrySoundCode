@@ -221,6 +221,7 @@ public abstract class AbstractList<T> extends AbstractCollection<T> implements L
 		return (this instanceof RandomAccess ? new RandomAccessSubList<T>(this, fromIndex, toIndex) : new SubList<T> (this, fromIndex, toIndex));
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public boolean equals(Object o) {
 		if(o == this) 
