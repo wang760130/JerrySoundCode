@@ -102,6 +102,7 @@ public class Properties extends Hashtable<Object, Object> {
 		InputStream inStream;
 		Reader reader;
 
+		@SuppressWarnings("unused")
 		int readLine() throws IOException {
 			int len = 0;
 			char c = 0;
@@ -402,6 +403,7 @@ public class Properties extends Hashtable<Object, Object> {
 				comments, true);
 	}
 
+	@SuppressWarnings("rawtypes")
 	private void store0(BufferedWriter bw, String comments, boolean escUnicode)
 			throws IOException {
 		if (comments != null) {
@@ -460,18 +462,21 @@ public class Properties extends Hashtable<Object, Object> {
 		return (val == null) ? defaultValue : val;
 	}
 
+	@SuppressWarnings("rawtypes")
 	public Enumeration<?> propertyNames() {
 		Hashtable h = new Hashtable();
 		enumerate(h);
 		return (Enumeration<?>) h.keys();
 	}
 
+	@SuppressWarnings("unchecked")
 	public Set<String> stringPropertyNames() {
 		Hashtable<String, String> h = new Hashtable<String, String>();
 		enumerateStringProperties(h);
 		return (Set<String>) h.keySet();
 	}
 
+	@SuppressWarnings("rawtypes")
 	public void list(PrintStream out) {
 		Hashtable h = new Hashtable();
 		enumerate(h);
@@ -485,6 +490,7 @@ public class Properties extends Hashtable<Object, Object> {
 		}
 	}
 
+	@SuppressWarnings("rawtypes")
 	public void list(PrintWriter out) {
 		out.println("-- listing properties --");
 		Hashtable h = new Hashtable();
@@ -499,6 +505,7 @@ public class Properties extends Hashtable<Object, Object> {
 		}
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private synchronized void enumerate(Hashtable h) {
 		if (defaults != null) {
 			defaults.enumerate(h);
@@ -509,6 +516,7 @@ public class Properties extends Hashtable<Object, Object> {
 		}
 	}
 
+	@SuppressWarnings("rawtypes")
 	private synchronized void enumerateStringProperties(
 			Hashtable<String, String> h) {
 		if (defaults != null) {
