@@ -18,16 +18,45 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * 默认的初始容量16
+	 */
 	static final int DEFAULT_INITIAL_CAPACITY = 16;
+	
+	/**
+	 * 最大容量
+	 */
 	static final int MAXIMUM_CAPACITY = 1 << 30;
+	
+	/**
+	 * 默认装载因子0.75f
+	 */
 	static final float DEFAULT_LOAD_FACTOR = 0.75f;
 	
+	/**
+	 * 存储数据的Entry数组
+	 */
+	@SuppressWarnings("rawtypes")
 	transient Entry[] table;
+	
+	/**
+	 * map中保存的键值对的数量
+	 */
 	transient int size;
 	
+	/**
+	 * 需要调整大小的极限值（容量*装载因子）
+	 */
 	int threshold;
+	
+	/**
+	 * 装载因子,当HashMap的数据大小>=容量*加载因子时，HashMap会将容量扩容
+	 */
 	final float loadFactor;
 	
+	/**
+	 * map结构被改变的次数
+	 */
 	transient volatile int modCount;
 	
 	public HashMap(int initialCapacity, float loadFactor) {
@@ -92,6 +121,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return size == 0;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public V get(Object key) {
 		if(key == null) {
@@ -107,6 +137,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return null;
 	} 
 	
+	@SuppressWarnings("unchecked")
 	private V getForNullKey() {
 		for(Entry<K, V> e = table[0]; e != null; e = e.next) {
 			if(e.key == null) 
@@ -120,6 +151,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return getEntry(key) != null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	final Object getEntry(Object key) {
 		int hash = (key == null) ? 0 : hash(key.hashCode());
 		for(Entry<K,V> e = table[indexFor(hash, table.length)]; e != null; e = e.next) {
@@ -130,6 +162,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public V put(K key, V value) {
 		if(key == null) 
@@ -152,6 +185,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private V putForNullKey(V value) {
 		for(Entry<K, V> e = table[0]; e != null; e = e.next) {
 			if(e.key == null) {
@@ -166,6 +200,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void putForCreate(K key, V value) {
 		int hash = (key == null) ? 0 : hash(key.hashCode());
 		int i = indexFor(hash, table.length);
@@ -188,6 +223,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	void resize(int newCapacity) {
 		Entry[] oldTable = table;
 		int oldCapacity = oldTable.length;
@@ -202,6 +238,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		threshold = (int)(newCapacity * loadFactor);
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void transfer(Entry[] newTable) {
 		Entry[] src = table;
 		int newCapacity = newTable.length;
@@ -254,6 +291,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return (e == null ? null : e.value);
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected Entry<K, V> removeEntryForKey(Object key) {
 		int hash = (key == null) ? 0 : hash(key.hashCode());
 		int i = indexFor(hash, table.length);
@@ -283,6 +321,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return e;
 	}
 
+	@SuppressWarnings("unchecked")
 	final Entry<K, V> removeMapping(Object o) {
 		if(!(o instanceof Map.Entry)) 
 			return null;
@@ -315,6 +354,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return e;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public void clear() {
 		modCount ++;
 		Entry[] tab = table;
@@ -324,6 +364,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		size = 0;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public boolean containsValue(Object value) {
 		if(value == null) {
@@ -341,6 +382,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return false;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private boolean containsNullValue() {
 		Entry[] tab = table;
 		for(int i = 0; i < tab.length; i++) {
@@ -353,6 +395,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		return false;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object clone() {
 		HashMap<K, V> result = null;
@@ -402,6 +445,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 			return oldValue;
 		}
 		
+		@SuppressWarnings("rawtypes")
 		@Override
 		public final boolean equals(Object o) {
 			if(!(o instanceof Map.Entry)) {
@@ -441,6 +485,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void addEntry(int hash, K key, V value, int bucketIndex) {
 		Entry<K, V> e = table[bucketIndex];
 		table[bucketIndex] = new Entry<K, V>(hash, key, value, e);
@@ -449,6 +494,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void createEntry(int hash, K key, V value, int bucketIndex) {
 		Entry<K, V> e = table[bucketIndex];
 		table[bucketIndex] = new Entry(hash, key, value, e);
@@ -462,6 +508,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		int index;
 		Entry<K, V> current;
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		HashIterator() {
 			expectedModCount = modCount;
 			if(size > 0) {
@@ -475,6 +522,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 			return next != null;
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		final Entry<K, V> nextEntry() {
 			if(modCount != expectedModCount) {
 				throw new ConcurrentModificationException();
@@ -630,6 +678,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 			return newEntryIterator();
 		}
 		
+		@SuppressWarnings("unchecked")
 		@Override
 		public boolean contains(Object o) {
 			if(!(o instanceof Map.Entry)) {
@@ -674,6 +723,7 @@ public class HashMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		
