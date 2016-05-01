@@ -94,6 +94,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return key(getLastEntry());
 	}
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void putAll(Map<? extends K, ? extends V> map) {
 		int mapSize = map.size();
@@ -112,6 +113,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		super.putAll(map);
 	}
 	
+	@SuppressWarnings("unchecked")
 	final Entry<K, V> getEntry(Object key) {
 		if(comparator != null) {
 			return getEntryUsingComparator(key);
@@ -136,6 +138,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	final Entry<K, V> getEntryUsingComparator(Object key) {
 		K k = (K) key;
 		Comparator<? super K> cpr = comparator;
@@ -270,6 +273,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	  
+	@SuppressWarnings("unchecked")
 	@Override
 	public V put(K key, V value) {
 		Entry<K, V> t = root;
@@ -345,6 +349,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		root = null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object clone() {
 		TreeMap<K, V> clone = null;
@@ -449,6 +454,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return navigableKeySet();
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public NavigableSet<K> navigableKeySet() {
 		KeySet<K> nks = navigableKeySet;
@@ -472,21 +478,25 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return (es != null) ? es : (entrySet = new EntrySet());
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public NavigableMap<K, V> descendingMap() {
 		NavigableMap<K, V> km = descendingMap;
 		return (km != null) ? km : (descendingMap = new DescendingSubMap(this, true, null, true, true, null, true));
 	}
  	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, 
 			K toKey, boolean toInclusive) {
 		return new AscendingSubMap(this, false, fromKey, fromInclusive, false, toKey, toInclusive);
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
 		return new AscendingSubMap(this, true, null, true, false, toKey, inclusive);
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
 		return new AscendingSubMap(this, false, fromKey, inclusive, true, null, true);
 	}
@@ -508,6 +518,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 	
 	class Values extends AbstractCollection<V> {
 
+		@SuppressWarnings("unchecked")
 		@Override
 		public Iterator<V> iterator() {
 			return (Iterator<V>) new ValueIterator(getFirstEntry());
@@ -542,6 +553,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return new EntryIterator(getFirstEntry());
 		}
 		
+		@SuppressWarnings("unchecked")
 		@Override
 		public boolean contains(Object o) {
 			if(! (o instanceof Map.Entry)) {
@@ -554,6 +566,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return p != null && valEquals(p.getValue(), value);
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		public boolean remove(Object o) {
 			if(!(o instanceof Map.Entry)) {
@@ -594,6 +607,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		
 		KeySet(NavigableMap<T, Object > map) { m = map; }
 		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		@Override
 		public Iterator<T> iterator() {
 			if(m instanceof TreeMap) {
@@ -603,6 +617,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			}
 		}
 		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		@Override
 		public Iterator<T> descendingIterator() {
 			if(m instanceof TreeMap) {
@@ -719,6 +734,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 
 		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		@Override
 		public NavigableSet<T> descendingSet() {
 			return new TreeSet(m.descendingMap());
@@ -841,6 +857,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	final int compare(Object k1, Object k2) {
 		return comparator==null ? ((Comparable<? super K>)k1).compareTo((K)k2)
 		            : comparator.compare((K)k1, (K)k2);
@@ -1117,6 +1134,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		transient EntrySetView entrySetView = null;
 		transient KeySet<K> navigableKeySetView = null;
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public NavigableSet<K> navigableKeySet() {
 			KeySet<K> nksv = navigableKeySetView;
@@ -1151,6 +1169,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		abstract class EntrySetView extends AbstractSet<Map.Entry<K, V>> {
 			private transient int size = -1, sizeModCount;
 			
+			@SuppressWarnings("rawtypes")
 			public int size() {
 				if(fromStart && toEnd) {
 					return m.size();
@@ -1173,6 +1192,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 				return n == null || tooHigh(n.key);
 			}
 			
+			@SuppressWarnings({ "unchecked", "rawtypes" })
 			public boolean contains(Object o) {
 				if(! (o instanceof Map.Entry)) {
 					return false;
@@ -1188,6 +1208,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 				return node != null && valEquals(node.getValue(), entry.getValue());
 			}
 			
+			@SuppressWarnings("unchecked")
 			public boolean remove(Object o) {
 				if(!(o instanceof Map.Entry)) {
 					return false;
@@ -1364,6 +1385,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return m.comparator();
 		}
 		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		@Override
 		public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
 				K toKey, boolean toInclusive) {
@@ -1378,6 +1400,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return new AscendingSubMap(m, false, fromKey, fromInclusive, false, toKey, toInclusive);
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
 			if(!inRange(toKey, inclusive)) {
@@ -1386,6 +1409,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return new AscendingSubMap(m, fromStart, lo, loInclusive, false, toKey, inclusive);
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
 			if (!inRange(fromKey, inclusive))
@@ -1393,6 +1417,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return new AscendingSubMap(m, false, fromKey, inclusive, toEnd, hi, hiInclusive);
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public NavigableMap<K, V> descendingMap() {
 			NavigableMap<K, V> mv = descendingMapView;
@@ -1454,6 +1479,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 	}
 	
 	
+	@SuppressWarnings("serial")
 	static final class DescendingSubMap<K, V> extends NavigableSubMap<K, V> {
 		
 		public DescendingSubMap(TreeMap<K,V> m, 
@@ -1565,12 +1591,14 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@SuppressWarnings({ "unused", "serial" })
 	private class SubMap extends AbstractMap<K, V> 
 		implements SortedMap<K, V> , Serializable {
 		
 		private boolean fromStart = false, toEnd = false;
 		private K fromKey, toKey;
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		private Object readResolve() {
 			return new AscendingSubMap(TreeMap.this, fromStart, fromKey, true, toEnd, toKey, false);
 		}
@@ -1633,6 +1661,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 			return oldValue;
 		}
 		
+		@SuppressWarnings("unchecked")
 		@Override
 		public boolean equals(Object o) {
 			if(! (o instanceof Map.Entry)) {
@@ -1956,11 +1985,13 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private void buildFromSorted(int size, Iterator it, ObjectInputStream is, V defaultVal) throws IOException, ClassNotFoundException {
 		this.size = size;
 		root = buildFromSorted(0, 0, size - 1, computeRedLevel(size), it, is, defaultVal);
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private final Entry<K, V> buildFromSorted(int level, int lo, int hi, 
 			int redLevel, Iterator it, ObjectInputStream is, V defaultVal) throws IOException, ClassNotFoundException {
 		if(hi < lo) {
