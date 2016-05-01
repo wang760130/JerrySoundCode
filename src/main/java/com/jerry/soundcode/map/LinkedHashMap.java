@@ -44,6 +44,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K,V> {
 		header.before = header.after = header;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void transfer(HashMap.Entry[] newTable) {
 		int newCapacity = newTable.length;
 		for(Entry<K,V> e = header.after; e != header; e = e.after) {
@@ -53,6 +54,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K,V> {
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public boolean containsValue(Object value) {
 		if(value == null) {
 			for(Entry e = header.after; e != header; e = e.after) {
@@ -70,6 +72,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K,V> {
 		return false;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public V get(Object key) {
 		Entry<K,V> e = (Entry<K, V>) getEntry(key);
 		if(e == null) {
@@ -113,6 +116,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K,V> {
 			}
 		}
 		
+		@SuppressWarnings("unused")
 		void revordRemoval(HashMap<K, V> m) {
 			remove();
 		}
@@ -208,6 +212,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K,V> {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	void createEntry(int hash, K key, V value, int buckedIndex) {
 		HashMap.Entry<K, V> old = table[buckedIndex];
 		Entry<K,V> e = new Entry<K,V>(hash, key, value, old);
