@@ -12,6 +12,7 @@ public interface Collection<T> extends Iterable<T> {
 	
 	Object[] toArray();
 	
+	@SuppressWarnings("hiding")
 	<T> T[] toArray(T[] a);
 	
 	boolean add(T t);
