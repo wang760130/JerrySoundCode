@@ -21,6 +21,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 	
 	private static final float DEFAULT_LOAD_FACEOR = 0.75f;
 	
+	@SuppressWarnings("rawtypes")
 	private Entry[] table;
 	
 	private int size;
@@ -79,6 +80,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return (key == null ? NULL_KEY : key);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static <K> K unmaskNull(Object key) {
 		return (K)(key == NULL_KEY ?  null : key);
 	}
@@ -91,6 +93,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return h & (length - 1);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void expungeStaleEntries() {
 		Entry<K, V> e;
 		
@@ -121,6 +124,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private Entry[] getTable() {
 		expungeStaleEntries();
 		return table;
@@ -140,6 +144,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return size() == 0;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public V get(Object key) {
 		Object k = maskNull(key);
@@ -162,6 +167,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return getEntry(key) != null;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	Entry<K, V> getEntry(Object key) {
 		Object k = maskNull(key);
 		int h = HashMap.hash(k.hashCode());
@@ -175,6 +181,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return e;
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes", "unused" })
 	@Override
 	public V put(K key, V value) {
 		K k = (K)maskNull(key);
@@ -201,6 +208,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return null;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	void resize(int newCapacity) {
 		Entry[] oldTable = getTable();
 		int oldCapacity = oldTable.length;
@@ -223,6 +231,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void transfer(Entry[] src, Entry[] dest) {
 		for(int j = 0; j < src.length; ++j) {
 			Entry<K, V> e = src[j];
@@ -271,6 +280,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			
 	} 
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public V remove(Object key) {
 		Object k = maskNull(key);
@@ -299,6 +309,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return null;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	Entry<K, V> removeMapping(Object o) {
 		if(! (o instanceof Map.Entry)) {
 			return null;
@@ -331,6 +342,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return null;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void clear() {
 		while(queue.poll() != null)
@@ -346,6 +358,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public boolean containsValue(Object value) {
 		if(value == null) {
@@ -363,6 +376,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		return false;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private boolean containsNullValue() {
 		Entry[] tab = getTable();
 		for(int i = tab.length; i-- >  0;) {
@@ -384,8 +398,8 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 		public Entry(K key, V value, ReferenceQueue<K> queue) {
 			super(key, queue);
 			this.value = value;
-			this.hash = hash;
-			this.next = next;
+//			this.hash = hash;
+//			this.next = next;
 		}
 
 		
@@ -397,12 +411,14 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return value;
 		}
 		
+		@SuppressWarnings("unused")
 		public V setValue(V newValue) {
 			V oldValue = value;
 			value = newValue;
 			return oldValue;
 		}
 		
+		@SuppressWarnings("rawtypes")
 		@Override
 		public boolean equals(Object o) {
 			if(! (o instanceof Map.Entry)) {
@@ -450,6 +466,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			index = (size() != 0 ? table.length : 0 );
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public boolean hasNext() {
 			Entry[] t = table;
@@ -521,6 +538,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 	}
 	
 	private class EntryIterator extends HashIterator<Map.Entry<K,V>> {
+		@SuppressWarnings("unchecked")
 		public Map.Entry<K, V> next() {
 			return (Map.Entry<K, V>) nextEntry();
 		}
@@ -609,6 +627,7 @@ public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K,V>{
 			return new EntryIterator();
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unused" })
 		@Override
 		public boolean contains(Object o) {
 			if(!(o instanceof Map.Entry)) {
