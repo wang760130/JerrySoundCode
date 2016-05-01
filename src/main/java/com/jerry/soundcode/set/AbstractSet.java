@@ -10,6 +10,7 @@ public abstract class AbstractSet<T> extends AbstractCollection<T> implements Se
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
