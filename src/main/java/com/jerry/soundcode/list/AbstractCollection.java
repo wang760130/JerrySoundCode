@@ -46,6 +46,7 @@ public abstract class AbstractCollection<T> implements Collection<T> {
 		return it.hasNext() ? finishToArray(r, it) : r;
 	}
 	
+	@SuppressWarnings({ "unchecked", "hiding" })
 	@Override
 	public <T> T[] toArray(T[] a) {
 		int size = size();
@@ -66,6 +67,7 @@ public abstract class AbstractCollection<T> implements Collection<T> {
 		return it.hasNext() ? finishToArray(r, it) : r;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static <T> T[] finishToArray(T[] r, Iterator<?> it) {
 		int i = r.length;
 		while(it.hasNext()) {
