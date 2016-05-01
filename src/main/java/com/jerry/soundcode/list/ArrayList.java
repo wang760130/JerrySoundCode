@@ -48,7 +48,7 @@ public class ArrayList<T> extends AbstractList<T>
 		modCount ++;
 		int oldCapacity = elementData.length;
 		if(minCapacity > oldCapacity) {
-			Object oldData[] = elementData;
+//			Object oldData[] = elementData;
 			int newCapcacity = (oldCapacity * 3) / 2 + 1;
 			if(newCapcacity < minCapacity) 
 				newCapcacity = minCapacity;
@@ -106,6 +106,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return -1;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object clone() {
 		try {
@@ -123,6 +124,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return Arrays.copyOf(elementData, size);
 	}
 	
+	@SuppressWarnings({ "unchecked", "hiding" })
 	@Override
 	public <T> T[] toArray(T[] a) {
 		if(a.length < size) {
@@ -135,6 +137,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return a;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public T get(int index) {
 		this.RangeCheck(index);
@@ -142,6 +145,7 @@ public class ArrayList<T> extends AbstractList<T>
 		return (T) elementData[index];
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public T set(int index, T t) {
 		this.RangeCheck(index);
@@ -170,6 +174,7 @@ public class ArrayList<T> extends AbstractList<T>
 		size++;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public T remove(int index) {
 		this.RangeCheck(index);
@@ -266,6 +271,7 @@ public class ArrayList<T> extends AbstractList<T>
 		size = 0;
 	}
 
+	@SuppressWarnings("unused")
 	private void writeObejct(ObjectOutputStream s) 
 		throws IOException {
 		int expectedModCount = modCount;
