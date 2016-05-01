@@ -7,13 +7,17 @@ public class ReferenceQueue<T> {
 	
 	public ReferenceQueue() {}
 	
+	@SuppressWarnings("rawtypes")
 	private static class Null extends ReferenceQueue {
+		@SuppressWarnings("unused")
 		boolean enqueue(ReferenceQueue r) {
 			return false;
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public static ReferenceQueue NULL  = new Null();
+	@SuppressWarnings("rawtypes")
 	static ReferenceQueue ENQUEUED = new Null();
 	
 	static private class Lock {};
@@ -22,6 +26,7 @@ public class ReferenceQueue<T> {
 	private volatile Reference<? extends T> head = null;
 	private long queueLength = 0;
 	
+	@SuppressWarnings({ "rawtypes", "restriction", "unchecked" })
 	public boolean enqueue(Reference r) {
 		synchronized (r) {
 			if(r.queue == ENQUEUED) {
@@ -43,6 +48,7 @@ public class ReferenceQueue<T> {
 		}
 	}
 	
+	@SuppressWarnings({ "unchecked", "restriction" })
 	private Reference<? extends T> reallyPoll() {
 		if(head != null) {
 			Reference<? extends T> r = head;
