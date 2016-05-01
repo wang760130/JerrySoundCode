@@ -68,6 +68,7 @@ public class HashSet<T> extends AbstractSet<T>
 		map.clear();
 	}
 	
+	@SuppressWarnings("unchecked")
 	public Object clone() {
 		HashSet<T> newSet;
 		try {
@@ -79,6 +80,7 @@ public class HashSet<T> extends AbstractSet<T>
 		}
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private void writeObject(ObjectOutputStream s) throws IOException {
 		s.defaultWriteObject();
 		s.writeInt(map.capacity());
@@ -90,6 +92,7 @@ public class HashSet<T> extends AbstractSet<T>
 		}
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		
