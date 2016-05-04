@@ -562,7 +562,14 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 				s.nextWaiter != Node.SHARED);
 	}
 	
-	final boolean fillIsFirst(Thread current) {
+	final boolean isFirst(Thread current) {
+		Node h, s;
+		return ((h = head) == null || 
+				((s = h.next) != null && s.thread == current) ||
+				fullIsFirst(current));
+	}
+	
+	final boolean fullIsFirst(Thread current) {
 		Node h, s;
 		Thread firstThread = null;
 		
@@ -702,12 +709,28 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new IllegalMonitorStateException();
 	}
 	
-	/*public final boolean owns(ConditionObejct condition) {
+	public final boolean owns(ConditionObject condition) {
 		if(condition == null) {
 			throw new NullPointerException();
 		}
 		return condition.isOwnedBy(this);
-	}*/
+	}
+	
+	public final boolean hasWaiters(ConditionObject condition) {
+		if(!owns(condition)) {
+			 throw new IllegalArgumentException("Not owner");
+		}
+		return condition.hasWaiters();
+	}
+	
+	public final int getWaitQueueLength(ConditionObject condition) {
+		if(!owns(condition)) {
+			throw new IllegalArgumentException("Not owner");
+		}
+		return condition.getWaitQueueLength();
+	}
+	
+	// TOOD
 	
 	public final boolean hasQueuedThreads() {
 		return head != tail;
