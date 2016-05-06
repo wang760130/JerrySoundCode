@@ -4,8 +4,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 
-import sun.reflect.Reflection;
-
 public class Unsafe {
 
 	private static final Unsafe theUnsafe;
@@ -14,9 +12,9 @@ public class Unsafe {
 	private static native void registerNatives();
 
 	public static Unsafe getUnsafe() {
-		Class localClass = Reflection.getCallerClass(2);
-		if (localClass.getClassLoader() != null)
-			throw new SecurityException("Unsafe");
+//		Class localClass = Reflection.getCallerClass(2);
+//		if (localClass.getClassLoader() != null)
+//			throw new SecurityException("Unsafe");
 		return theUnsafe;
 	}
 

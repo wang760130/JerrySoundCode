@@ -108,10 +108,10 @@ public abstract class AtomicIntegerFieldUpdater<T> {
 
 			try {
 				field = tclass.getDeclaredField(fieldName);
-				caller = sun.reflect.Reflection.getCallerClass(3);
+//				caller = sun.reflect.Reflection.getCallerClass(3);
 				modifiers = field.getModifiers();
-				sun.reflect.misc.ReflectUtil.ensureMemberAccess(caller, tclass, null, modifiers);
-				sun.reflect.misc.ReflectUtil.checkPackageAccess(tclass);
+//				sun.reflect.misc.ReflectUtil.ensureMemberAccess(caller, tclass, null, modifiers);
+//				sun.reflect.misc.ReflectUtil.checkPackageAccess(tclass);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			} 
