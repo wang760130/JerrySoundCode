@@ -5,7 +5,7 @@ import com.jerry.soundcode.concurrent.atomic.Unsafe;
 /**
  * LockSupport是JDK中比较底层的类，用来创建锁和其他同步工具类的基本线程阻塞原语。
  * java锁和同步器框架的核心 AQS: AbstractQueuedSynchronizer，
- * 就是通过调用 LockSupport .park()和 LockSupport .unpark()实现线程的阻塞和唤醒 的。
+ * 就是通过调用 LockSupport.park()和 LockSupport.unpark()实现线程的阻塞和唤醒 的。
  *
  */
 public class LockSupport {
