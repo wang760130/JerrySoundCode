@@ -3,6 +3,7 @@ package com.jerry.soundcode.concurrent.locks;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
+import com.jerry.soundcode.list.Collection;
 
 /**
  * 读写锁拆成读锁和写锁来理解。读锁可以共享，多个线程可以同时拥有读锁，但是写锁却只能只有一个线程拥有，而且获取写锁的时候其他线程都已经释放了读锁，
@@ -173,6 +174,59 @@ public class ReentrantLock implements Serializable {
 		return sync instanceof FairSync;
 	}
 	
-	// TODO 
+	protected Thread getOwner() {
+		return sync.getOwner();
+	}
+	
+	public final boolean hasQueuedThreads() {
+		return sync.hasQueuedThreads();
+	}
+	
+	public final boolean hasQueuedThread(Thread thread) {
+		return sync.isQueued(thread);
+	}
+	
+	public final int getQueueLength() {
+		return sync.getQueueLength();
+	}
+	
+	protected Collection<Thread> getQueueedThreads() {
+		return sync.getQueuedThreads();
+	}
+	
+	public boolean hasWaiters(Condition condition) {
+		if(condition == null) {
+			 throw new NullPointerException();
+		}
+		
+		if(!(condition instanceof AbstractQueuedSynchronizer.ConditionObject)) {
+			 throw new IllegalArgumentException("not owner");
+		}
+		
+		return sync.hasWaiters((AbstractQueuedSynchronizer.ConditionObject)condition);
+	}
+	
+	public int getWaitQueueLength(Condition condition) {
+		if (condition == null)
+			throw new NullPointerException();
+		if (!(condition instanceof AbstractQueuedSynchronizer.ConditionObject))
+			throw new IllegalArgumentException("not owner");
+		return sync.getWaitQueueLength((AbstractQueuedSynchronizer.ConditionObject)condition);
+	}
+	
+	protected Collection<Thread> getWaitingThreads(Condition condition) {
+		if (condition == null)
+			throw new NullPointerException();
+		if (!(condition instanceof AbstractQueuedSynchronizer.ConditionObject))
+			throw new IllegalArgumentException("not owner");
+	    return sync.getWaitingThreads((AbstractQueuedSynchronizer.ConditionObject)condition);
+	}
+	
+	public String toString() {
+        Thread o = sync.getOwner();
+        return super.toString() + ((o == null) ?
+                                   "[Unlocked]" :
+                                   "[Locked by thread " + o.getName() + "]");
+    }
 	
 }
