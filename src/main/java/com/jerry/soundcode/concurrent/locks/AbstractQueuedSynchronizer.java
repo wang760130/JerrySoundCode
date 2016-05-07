@@ -507,7 +507,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return false;
 	}
 	
-	public final boolean hashQueuedThreads() {
+	public final boolean hasQueuedThreads() {
 		return head != tail;
 	}
 	
@@ -730,10 +730,11 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return condition.getWaitQueueLength();
 	}
 	
-	// TOOD
-	
-	public final boolean hasQueuedThreads() {
-		return head != tail;
+	public final Collection<Thread> getWaitingThreads(ConditionObject condition) {
+		if(!owns(condition)) {
+			throw new IllegalArgumentException("Not owner");
+		}
+		return condition.getWaitingThreads();
 	}
 	
 	public class ConditionObject implements Condition, Serializable {
