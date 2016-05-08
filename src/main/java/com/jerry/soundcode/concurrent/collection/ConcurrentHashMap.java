@@ -69,6 +69,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 			this.value = value;
 		}
 		
+		@SuppressWarnings("unchecked")
 		static final <K, V> HashEntry<K, V>[] newArray(int i) {
 			return new HashEntry[i];
 		}
@@ -93,6 +94,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 			setTable(HashEntry.<K,V>newArray(initialCapacity));
 		}
 		
+		@SuppressWarnings("unchecked")
 		static final <K, V> Segment<K, V>[] newArray(int i) {
 			return new Segment[i];
 		}
@@ -492,11 +494,11 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		int[] mc = new int[segments.length];
 		
 		for(int k = 0; k < RETRIES_BEFORE_LOCK; ++k) {
-			int sum = 0;
+//			int sum = 0;
 			int mcsum = 0;
 			
 			for(int i = 0; i < segments.length; ++i) {
-				int c = segments[i].count;
+//				int c = segments[i].count;
 				mcsum += mc[i] = segments[i].modCount;
 				if(segments[i].containsValue(value)) {
 					return true;
@@ -506,7 +508,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 			boolean cleanSweep = true;
 			if(mcsum != 0) {
 				for(int i = 0; i < segments.length; ++i) {
-					int c = segments[i].count;
+//					int c = segments[i].count;
 					if(mc[i] != segments[i].modCount) {
 						cleanSweep = false;
 						break;
@@ -730,6 +732,8 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 	
 	final class WriteThroughEntry extends AbstractMap.SimpleEntry<K, V> {
 
+		private static final long serialVersionUID = 1L;
+
 		public WriteThroughEntry(K k, V v) {
 			super(k, v);
 		}
@@ -871,6 +875,7 @@ public class ConcurrentHashMap<K, V> extends AbstractMap<K, V>
 		s.writeObject(null);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		
