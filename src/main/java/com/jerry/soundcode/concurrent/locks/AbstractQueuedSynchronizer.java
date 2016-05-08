@@ -286,37 +286,32 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new InterruptedException();
 	}
 	
-	private boolean doAcquireNanos(int arg, long nanosTimeout) throws Exception {
+	private boolean doAcquireNanos(int arg, long nanosTimeout) throws InterruptedException {
 		long lastTime = System.nanoTime();
 		final Node node = addWaiter(Node.EXCLUSIVE);
 		
-		try {
-			for(;;) {
-				final Node p = node.predecccessor();
-				if(p == head && tryAcquire(arg)) {
-					setHead(node);
-					p.next = null;
-					return true;
-				}
-				if(nanosTimeout <= 0) {
-					cancelAcquire(node);
-					return false;
-				}
-				if(nanosTimeout > spinForTimeoutThresholf && 
-						shouldParAfterFailedAcquire(p, node)) {
-					LockSupport.parkNanos(this, nanosTimeout);
-				}
-				
-				long now = System.nanoTime();
-				nanosTimeout -= now - lastTime;
-				if(Thread.interrupted()) {
-					break;
-				}
-				
+		for(;;) {
+			final Node p = node.predecccessor();
+			if(p == head && tryAcquire(arg)) {
+				setHead(node);
+				p.next = null;
+				return true;
 			}
-		} catch (Exception e) {
-			cancelAcquire(node);
-			throw e;
+			if(nanosTimeout <= 0) {
+				cancelAcquire(node);
+				return false;
+			}
+			if(nanosTimeout > spinForTimeoutThresholf && 
+					shouldParAfterFailedAcquire(p, node)) {
+				LockSupport.parkNanos(this, nanosTimeout);
+			}
+			
+			long now = System.nanoTime();
+			nanosTimeout -= now - lastTime;
+			if(Thread.interrupted()) {
+				break;
+			}
+			
 		}
 		cancelAcquire(node);
 		throw new InterruptedException();
@@ -380,43 +375,38 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new InterruptedException();
 	}
 	
-	private boolean doAcquireSharedNanos(int arg, long nanosTimeout) throws Exception {
+	private boolean doAcquireSharedNanos(int arg, long nanosTimeout) throws InterruptedException {
 		
 		long lastTime = System.nanoTime();
 		final Node node = addWaiter(Node.SHARED);
 		
-		try {
-			for(;;) {
-				final Node p = node.predecccessor();
-				if(p == head) {
-					int r = tryAcquireShared(arg);
-					if(r >= 0) {
-						setHeadAndPropageate(node, r);
-						p.next = null;
-						return true;
-					}
-				}
-				
-				if(nanosTimeout <= 0) {
-					cancelAcquire(node);
-					return false;
-				}
-				
-				if(nanosTimeout > spinForTimeoutThresholf &&
-						shouldParAfterFailedAcquire(p, node)) {
-					LockSupport.parkNanos(this, nanosTimeout);
-				}
-				
-				long now = System.nanoTime();
-				nanosTimeout -= now - lastTime;
-				lastTime = now;
-				if(Thread.interrupted()) {
-					break;
+		for(;;) {
+			final Node p = node.predecccessor();
+			if(p == head) {
+				int r = tryAcquireShared(arg);
+				if(r >= 0) {
+					setHeadAndPropageate(node, r);
+					p.next = null;
+					return true;
 				}
 			}
-		} catch (Exception e) {
-			cancelAcquire(node);
-			throw e;
+			
+			if(nanosTimeout <= 0) {
+				cancelAcquire(node);
+				return false;
+			}
+			
+			if(nanosTimeout > spinForTimeoutThresholf &&
+					shouldParAfterFailedAcquire(p, node)) {
+				LockSupport.parkNanos(this, nanosTimeout);
+			}
+			
+			long now = System.nanoTime();
+			nanosTimeout -= now - lastTime;
+			lastTime = now;
+			if(Thread.interrupted()) {
+				break;
+			}
 		}
 		cancelAcquire(node);
 		throw new InterruptedException();
@@ -457,7 +447,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		}
 	}
 	
-	public final boolean tryAcquireNanos(int arg, long nanosTimeout) throws Exception {
+	public final boolean tryAcquireNanos(int arg, long nanosTimeout) throws InterruptedException {
 		if(Thread.interrupted()) {
 			throw new InterruptedException();
 		}
@@ -491,7 +481,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		}
 	}
 	
-	public final boolean tryAcquireSharedNanos(int arg, long nanosTimeout) throws Exception {
+	public final boolean tryAcquireSharedNanos(int arg, long nanosTimeout) throws InterruptedException {
 		if(Thread.interrupted()) {
 			throw new InterruptedException();
 		}
