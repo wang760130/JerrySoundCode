@@ -763,6 +763,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 			} while(!transferForSignal(first) && (first = firstWaiter) != null);
 		}
 		
+		@SuppressWarnings("unused")
 		private void doSignalAll(Node first) {
 			lastWaiter = firstWaiter = null;
 			do {
