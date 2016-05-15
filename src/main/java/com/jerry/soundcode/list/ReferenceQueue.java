@@ -26,7 +26,7 @@ public class ReferenceQueue<T> {
 	private volatile Reference<? extends T> head = null;
 	private long queueLength = 0;
 	
-	@SuppressWarnings({ "rawtypes", "restriction", "unchecked" })
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public boolean enqueue(Reference r) {
 		synchronized (r) {
 			if(r.queue == ENQUEUED) {
@@ -48,7 +48,7 @@ public class ReferenceQueue<T> {
 		}
 	}
 	
-	@SuppressWarnings({ "unchecked", "restriction" })
+	@SuppressWarnings({ "unchecked" })
 	private Reference<? extends T> reallyPoll() {
 		if(head != null) {
 			Reference<? extends T> r = head;
