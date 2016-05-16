@@ -128,8 +128,45 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
 	}
 	
 	@Override
-	public void put(E t) throws InterruptedException {
-		// TODO
+	public void put(E e) throws InterruptedException {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		
+		int c = -1;
+		final ReentrantLock putLock = this.putLock;
+		final AtomicInteger count = this.count;
+		putLock.lockInterruptibly();
+		
+		try {
+			while(count.get() == capacity) {
+				notFull.await();
+			}
+			enqueue(e);
+			c = count.getAndIncrement();
+			if(c + 1 < capacity) {
+				notFull.signal();
+			}
+		} finally {
+			putLock.unlock();
+		}
+		
+		if(c == 0) {
+			signalNotEmpty();
+		}
+	}
+	
+	@Override
+	public boolean offer(E t, long timeout, TimeUnit unit)
+			throws InterruptedException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public boolean offer(E t) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 	
 	@Override
@@ -144,18 +181,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
 		return null;
 	}
 
-	@Override
-	public boolean offer(E t) {
-		// TODO Auto-generated method stub
-		return false;
-	}
+	
 
-	@Override
-	public boolean offer(E t, long timeout, TimeUnit unit)
-			throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public E take() throws InterruptedException {
