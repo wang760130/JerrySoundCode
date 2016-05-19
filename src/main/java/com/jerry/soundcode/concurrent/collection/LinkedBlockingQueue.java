@@ -157,10 +157,42 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
 	}
 	
 	@Override
-	public boolean offer(E t, long timeout, TimeUnit unit)
+	public boolean offer(E e, long timeout, TimeUnit unit)
 			throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
+		
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		
+		long nanos = unit.toNanos(timeout);
+		int c = -1;
+		
+		final ReentrantLock putLock = this.putLock;
+		final AtomicInteger count = this.count;
+		putLock.lockInterruptibly();
+		
+		try {
+			while(count.get() == capacity) {
+				if(nanos < 0) {
+					return false;
+				}
+				nanos = notFull.awaitNanos(nanos);
+			}
+			enqueue(e);
+			c = count.getAndIncrement();
+			if(c + 1 < capacity) {
+				notFull.signal();
+			}
+			
+		} finally {
+			putLock.unlock();
+		}
+		
+		if(c == 0) {
+			signalNotEmpty();
+		}
+		
+		return true;
 	}
 	
 	@Override
