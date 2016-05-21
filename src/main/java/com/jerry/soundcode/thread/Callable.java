@@ -1,6 +1,7 @@
 package com.jerry.soundcode.thread;
 
-public class Callable {
-
+public interface Callable<V> {
+	
+	V call() throws Exception;
 	
 }
