@@ -35,9 +35,55 @@ public class Thread implements Runnable {
 		return threadInitNumber++;
 	}
 	
+	public ThreadLocal.ThreadLocalMap threadLocals = null;
+	
+	public ThreadLocal.ThreadLocalMap inheritableThreadLocal = null;
+	
+	private long stackSize;
+	
+	private long nativeParkEventPointer;
+	
+	private long tid;
+	
+	private static long threadSeqNumber;
+	
+	private int threadStatus = 0;
+	
+	private static synchronized long nextThreadID() {
+		return ++threadSeqNumber;
+	}
+	
+	volatile Object parkBlocker;
+	
+	private volatile Interruptible blocker;
+	
+	private Object blockerLock = new Object();
+	
+	void blockedOn(Interruptible b) {
+		synchronized (blockerLock) {
+			blocker = b;
+		}
+	}
+	
+	public final static int MIN_PRIORITY = 1;
+	
+	public final static int MORM_PRIORITY = 5;
+	
+	public final static int MAX_PRIORITY = 10;
+	
+	private boolean stopBeforeStart;
+	
+	private Throwable throwableFromStop;
+	
 	@Override
 	public void run() {
 		
+	}
+
+
+	public static Thread currentThread() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	

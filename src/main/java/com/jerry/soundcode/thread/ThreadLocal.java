@@ -1,7 +1,8 @@
-package com.jerry.soundcode.threadlocal;
+package com.jerry.soundcode.thread;
 
 import com.jerry.soundcode.concurrent.atomic.AtomicInteger;
 import com.jerry.soundcode.ref.WeakReference;
+import com.jerry.soundcode.thread.*;
 
 public class ThreadLocal<T> {
 	
@@ -15,7 +16,7 @@ public class ThreadLocal<T> {
 		return nextHashCode.getAndAdd(HASH_INCREMENT);
 	}
 	
-	protected T initailValue() {
+	protected T initialValue() {
 		return null;
 	}
 	
@@ -24,20 +25,71 @@ public class ThreadLocal<T> {
 	}
 	
 	public T get() {
-//		Thread t = Thread.currentThread();
-//		ThreadLocalMap
-		return null;
+		Thread t = Thread.currentThread();
+		ThreadLocalMap map = getMap(t);
+		if(map != null) {
+			ThreadLocalMap.Entry e = map.getEntry(this);
+			if(e != null) {
+				return (T) e.value;
+			}
+		}
+		return setInitialValue();
+	}
+	
+	private T setInitialValue() {
+		T value = initialValue();
+		Thread t = Thread.currentThread();
+		ThreadLocalMap map = getMap(t);
+		if(map != null) {
+			map.set(this, value);
+		} else {
+			createMap(t, value);
+		}
+		return value;
+	}
+	
+
+
+	public void set(T value) {
+		Thread t = Thread.currentThread();
+		ThreadLocalMap map = getMap(t);
+		if(map != null) {
+			map.set(this, value);
+		} else {
+			createMap(t, value);
+		}
+	}
+	
+	public void remove() {
+		ThreadLocalMap m = getMap(Thread.currentThread());
+		if(m != null) {
+			m.remove(this);
+		}
+	}
+	
+	ThreadLocalMap getMap(Thread t) {
+		return t.threadLocals;
+	}
+	
+	void createMap(Thread t, T firstValue) {
+		t.threadLocals = new ThreadLocalMap(this, firstValue);
+	}
+	
+	static ThreadLocalMap createInheritedMap(ThreadLocalMap parentMap) {
+		return new ThreadLocalMap(parentMap);
 	}
 	
 	T childValue(T parentValue) {
 		throw new UnsupportedOperationException();
 	}
 	
-	static class ThreadLocalMap {
+	
+	
+	public static class ThreadLocalMap {
 		static class Entry extends WeakReference<ThreadLocal> {
 			Object value;
 			
-			Entry(ThreadLocal k, Object v) {
+			Entry(ThreadLocal<?> k, Object v) {
 				super(k);
 				value = v;
 			}
@@ -80,7 +132,7 @@ public class ThreadLocal<T> {
 			for(int j = 0; j < len; j++) {
 				Entry e = parentTable[j];
 				if(e != null) {
-					ThreadLocal key = e.get();
+					ThreadLocal<Object> key = e.get();
 					Object value = key.childValue(e.value);
 					Entry c = new Entry(key, value);
 					int h = key.threadLocalHashCode & (len - 1);
@@ -136,7 +188,32 @@ public class ThreadLocal<T> {
 				}
 				
 				if(k == null) {
-					
+					e.value = value;
+					return ;
+				}
+				
+				if(k == null) {
+					replaceStaleEntry(key, value, i);
+					return ;
+				}
+			}
+			
+			tab[i] = new Entry(key, value);
+			int sz = ++size;
+			if(!cleanSomeSlots(i, sz) && sz >= threshold) {
+				rehash();
+			}
+		}
+		
+		private void remove(ThreadLocal key) {
+			Entry[] tab = table;
+			int len = tab.length;
+			int i = key.threadLocalHashCode & (len - 1);
+			for(Entry e = tab[i]; e != null; e = tab[i = nextIndex(i, len)]) {
+				if(e.get() == key) {
+					e.clear();
+					expungeStaleEntry(i);
+					return ;
 				}
 			}
 		}
@@ -163,9 +240,21 @@ public class ThreadLocal<T> {
 					if(slotToExpunge == staleSlot) {
 						slotToExpunge = i;
 					}
+					cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+					return ;
+				}
+				
+				if(k == null && slotToExpunge == staleSlot) {
+					slotToExpunge = i;
 				}
 			}
 			
+			tab[staleSlot].value = null;
+			tab[staleSlot] = new Entry(key, value);
+			
+			if(slotToExpunge != staleSlot) {
+				cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+			}
 		}
 		
 		private int expungeStaleEntry(int staleSlot) {
@@ -197,5 +286,70 @@ public class ThreadLocal<T> {
 			}
 			return i;
 		}
+		
+		private boolean cleanSomeSlots(int i, int n) {
+			boolean reomved = false;
+			Entry[] tab = table;
+			int len = tab.length;
+			do {
+				i = nextIndex(i, len);
+				Entry e = tab[i];
+				if(e != null && e.get() == null) {
+					n = len;
+					reomved = true;
+					i = expungeStaleEntry(i);
+				}
+			} while( (n >>>= 1) != 0);
+			return reomved;
+		}
+		
+		private void rehash() {
+			expungeStaleEntries();
+			
+			if(size >= threshold - threshold / 4) {
+				resize();
+			}
+		}
+		
+		private void resize() {
+			Entry[] oldTab = table;
+			int oldLen = oldTab.length;
+			int newLen = oldLen * 2;
+			Entry[] newTab = new Entry[newLen];
+			int count = 0;
+			
+			for(int j = 0; j < oldLen; ++j) {
+				Entry e = oldTab[j];
+				if(e != null) {
+					ThreadLocal k = e.get();
+					if(k == null) {
+						e.value = null;
+					} else {
+						int h = k.threadLocalHashCode & (newLen - 1);
+						while(newTab[h] != null) {
+							h = nextIndex(h, newLen);
+						}
+						newTab[h] = e;
+						count ++;
+					}
+				}
+			}
+			
+			setThreshold(newLen);
+			size = count;
+			table = newTab;
+		}
+		
+		private void expungeStaleEntries() {
+			Entry[] tab = table;
+			int len = tab.length;
+			for(int j = 0; j < len; j++) {
+				Entry e = tab[j];
+				if(e != null && e.get() == null) {
+					expungeStaleEntry(j);
+				}
+			}
+		}
+		
 	}
 }
