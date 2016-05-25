@@ -75,6 +75,14 @@ public class Thread implements Runnable {
 	
 	private Throwable throwableFromStop;
 	
+	private volatile Thread me;
+	
+//	public static native Thread currentThread();
+	
+	public static native void yield();
+	
+	public static native void sleep(long millis) throws InterruptedException;
+	
 	@Override
 	public void run() {
 		
