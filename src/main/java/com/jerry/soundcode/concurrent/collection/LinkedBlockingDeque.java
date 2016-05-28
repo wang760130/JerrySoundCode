@@ -1,9 +1,13 @@
 package com.jerry.soundcode.concurrent.collection;
 
 import java.io.Serializable;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
+import com.jerry.soundcode.concurrent.locks.Condition;
+import com.jerry.soundcode.concurrent.locks.ReentrantLock;
 import com.jerry.soundcode.list.AbstractQueue;
+import com.jerry.soundcode.list.Collection;
 import com.jerry.soundcode.list.Iterator;
 
 /**
@@ -16,21 +20,648 @@ import com.jerry.soundcode.list.Iterator;
  */
 public class LinkedBlockingDeque<E> extends AbstractQueue<E> implements BlockingDeque<E>, Serializable {
 	private static final long serialVersionUID = 1L;
+	
+	static final class Node<E> {
+		E item;
+		
+		Node<E> prev;
+		
+		Node<E> next;
+		
+		Node(E x, Node<E> p, Node<E> n) {
+			item = x;
+			prev = p;
+			next = n;
+		}
+	}
+	
+	transient Node<E> first;
+	
+	transient Node<E> last;
+	
+	private transient int count;
+	
+	private final int capacity;
+	
+	final ReentrantLock lock = new ReentrantLock();
+	
+	private final Condition notEmpty = lock.newCondition();
+	
+	private final Condition notFull = lock.newCondition();
+	
+	public LinkedBlockingDeque() {
+		this(Integer.MAX_VALUE);
+	}
+	
+	public LinkedBlockingDeque(int capacity) {
+		if(capacity < 0) {
+			throw new IllegalArgumentException();
+		}
+		this.capacity = capacity;
+	}
+	
+	public LinkedBlockingDeque(Collection<? extends E> c) {
+		this(Integer.MAX_VALUE);
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+//			if(E e : c) {
+//				if(e == null) {
+					throw new NullPointerException();
+//				}
+//				if(!linkLast(e)) {
+//					throw new IllegalStateException("Deque full");
+//				}
+//			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	private boolean linkFirt(E e) {
+		if(count >= capacity) {
+			return false;
+		}
+		
+		Node<E> f = first;
+		Node<E> x = new Node<E>(e, null, f);
+		first = x;
+		if(last == null) {
+			last = x;
+		} else {
+			f.prev = x;
+		}
+		++count;
+		notEmpty.signal();
+		return true;
+	}
+	
+	private boolean linkLast(E e) {
+		if(count >= capacity) {
+			return false;
+		}
+		Node<E> l = last;
+		Node<E> x = new Node<E>(e, l, null);
+		last = x;
+		if(first == null) {
+			first = x;
+		} else {
+			l.next = x;
+		}
+		++count;
+		notEmpty.signal();
+		return true;
+	}
+	
+	private E unlinkFirst() {
+		Node<E> f = first;
+		if(f == null) {
+			return null;
+		}
+		Node<E> n = f.next;
+		E item = f.item;
+		f.item = null;
+		first = n;
+		if(n == null) {
+			last = null;
+		} else {
+			n.prev = null;
+		}
+		--count;
+		notEmpty.signal();
+		return item;
+	}
+	
+	private E unlinkLast() {
+		Node<E> l = last;
+		if(l == null) {
+			return null;
+		}
+		Node<E> p = l.prev;
+		E item = l.item;
+		l.item = null;
+		l.prev = l;
+		 
+		last = p;
+		if(p == null) {
+			first = null;
+		} else {
+			p.next = null;
+		}
+		--count;
+		notEmpty.signal();
+		return item;
+	}
+	
+	void unlink(Node<E> x) {
+		Node<E> p = x.prev;
+		Node<E> n = x.next;
+		if(p == null) {
+			unlinkFirst();
+		} else if(n == null) {
+			unlinkLast();
+		} else {
+			p.next = n;
+			n.prev = p;
+			x.item = null;
+			--count;
+			notEmpty.signal();
+		}
+	}
+	
+	public void addFirst(E e) {
+		if(!offerFirst(e)) {
+			throw new IllegalStateException("Deque full");
+		}
+	}
+	
+	@Override
+	public void addLast(E e) {
+		if(!offerLast(e)) {
+			throw new IllegalStateException("Deque full");
+		}
+	}
+
+	public boolean offerFirst(E e) {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return linkFirt(e);
+		} finally {
+			lock.unlock();
+		}
+	} 
+	
+	public boolean offerLast(E e) {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return linkLast(e);
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public void putFirst(E e) throws InterruptedException {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			while(!linkFirt(e)) {
+				notEmpty.await();
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	@Override
+	public void putLast(E e) throws InterruptedException {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			while(!linkFirt(e)) {
+				notFull.await();
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
 
 	@Override
-	public boolean offer(E t) {
-		// TODO Auto-generated method stub
+	public boolean offerFirst(E e, long timeout, TimeUnit unit)
+			throws InterruptedException {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		long nanos = unit.toNanos(timeout);
+		final ReentrantLock lock = this.lock;
+		lock.lockInterruptibly();
+		try {
+			while(!linkFirt(e)) {
+				if(nanos <= 0) {
+					return false;
+				}
+				nanos = notFull.awaitNanos(nanos);
+			}
+		} finally {
+			lock.unlock();
+		}
 		return false;
 	}
 
 	@Override
-	public E poll() {
-		// TODO Auto-generated method stub
-		return null;
+	public boolean offerLast(E e, long timeout, TimeUnit unit)
+			throws InterruptedException {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		long nanos = unit.toNanos(timeout);
+		final ReentrantLock lock = this.lock;
+		lock.lockInterruptibly();
+		try {
+			while(!linkLast(e)) {
+				if(nanos < 0) {
+					return false;
+				}
+				nanos = notFull.awaitNanos(nanos);
+			}
+		} finally {
+			lock.unlock();
+		}
+		return false;
+	}
+
+	public E removeFirst() {
+		E x = pollFirst();
+		if(x == null) {
+			throw new NoSuchElementException();
+		}
+		return x;
+	}
+	
+	@Override
+	public E removeLast() {
+		E x = pollLast();
+		if(x == null) {
+			throw new NoSuchElementException();
+		}
+		return x;
 	}
 
 	@Override
+	public E pollFirst() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return unlinkLast();
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	@Override
+	public E pollLast() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return unlinkLast();
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	@Override
+	public E takeFirst() throws InterruptedException {
+		final ReentrantLock lock = this.lock;
+		try {
+			E x;
+			while( (x = unlinkFirst()) == null) {
+				notEmpty.await();
+			}
+			return x;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	@Override
+	public E takeLast() throws InterruptedException {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			E x;
+			while((x = unlinkFirst()) == null) {
+				notEmpty.await();
+			}
+			return x;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	@Override
+	public E pollFirst(long timeout, TimeUnit unit) throws InterruptedException {
+		long nanos = unit.toNanos(timeout);
+		final ReentrantLock lock = this.lock;
+		lock.lockInterruptibly();
+		try {
+			E x;
+			while((x = unlinkFirst()) == null) {
+				if(nanos <= 0) {
+					return null;
+				}
+				nanos = notEmpty.awaitNanos(nanos);
+			}
+			return x;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	@Override
+	public E pollLast(long timeout, TimeUnit unit) throws InterruptedException {
+		long nanos = unit.toNanos(timeout);
+		final ReentrantLock lock = this.lock;
+		lock.lockInterruptibly();
+		try {
+			E x;
+			while((x = unlinkLast()) == null) {
+				if(nanos <= 0) {
+					return null;
+				}
+				nanos = notEmpty.awaitNanos(nanos);
+			}
+			return x;
+		} finally {
+			lock.unlock();
+		} 
+	}
+
+	@Override
+	public E getFirst() {
+		E x = peekFirst();
+		if(x == null) {
+			throw new NoSuchElementException();
+		}
+		return x;
+	}
+
+	@Override
+	public E getLast() {
+		E x = peekLast();
+		if(x == null) {
+			throw new NoSuchElementException();
+		}
+		return x;
+	}
+
+	@Override
+	public E peekFirst() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return (first == null) ? null : first.item;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	@Override
+	public E peekLast() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return (last == null) ? null : last.item;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public boolean removeFirstOccurrence(Object o) {
+		if(o == null) {
+			return false;
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			for(Node<E> p = first; p != null; p = p.next) {
+				if(o.equals(p.item)) {
+					unlink(p);
+					return true;
+				}
+			}
+			return false;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public boolean removeLastOccurrence(Object o) {
+		if(o == null) {
+			return false;
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		
+		try {
+			for(Node<E> p = last; p != null; p = p.prev) {
+				if(o.equals(p.item)) {
+					unlink(p);
+					return true;
+				}
+			}
+			return false;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public boolean add(E e) {
+		addLast(e);
+		return true;
+	}
+	
+	public boolean offer(E e) {
+		return offerLast(e);
+	}
+	
+	public void put(E e) throws InterruptedException {
+		push(e);
+	}
+	
+	public boolean offer(E e, long timeout, TimeUnit unit) throws InterruptedException {
+		return offerLast(e, timeout, unit);
+	}
+	
+	public E remove() {
+		return removeFirst();
+	}
+	
+	public E poll() {
+		return peekFirst();
+	}
+	
+	public E take() throws InterruptedException {
+		return takeFirst();
+	}
+	
+	@Override
+	public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+		return pollFirst(timeout, unit);
+	}
+	
+	public E element() {
+		return getFirst();
+	}
+	
 	public E peek() {
+		return peekFirst();
+	}
+	
+	public int remainingCapacity() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return capacity - count;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public int drainTo(Collection<? super E> c) {
+		return drainTo(c, Integer.MAX_VALUE);
+	}
+	
+	@Override
+	public int drainTo(Collection<? super E> c,	int maxElements) {
+		if(c == null) {
+			throw new NullPointerException();
+		}
+		if(c == this) {
+			throw new IllegalArgumentException();
+		}
+		final ReentrantLock lock = this.lock;
+		try {
+			int n = Math.min(maxElements, count);
+			for(int i = 0; i < n; i++) {
+				c.add(first.item);
+				unlinkFirst();
+			}
+			return n;
+		} finally {
+			lock.unlock();
+		}
+		
+	}
+
+	@Override
+	public void push(E t) {
+		addFirst(t);
+	}
+
+	@Override
+	public E pop() {
+		return removeFirst();
+	}
+	
+	public boolean remove(Object o) {
+		return removeFirstOccurrence(o);
+	}
+
+	@Override
+	public int size() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return count;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	public boolean contains(Object o) {
+		if(o == null) {
+			return false;
+		}
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			for(Node<E> p = first; p != null; p = p.next) {
+				if(o.equals(p.item)) {
+					return true;
+				}
+			}
+			return false;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	
+	public Object[] toArray() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			Object[] a = new Object[count];
+			int k = 0; 
+			for(Node<E> p = first; p != null; p = p.next) {
+				a[k++] = p.item;
+			} 
+			return a;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <T> T[] toArray(T[] a) {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			if(a.length < count) {
+				 a = (T[])java.lang.reflect.Array.newInstance
+			                (a.getClass().getComponentType(), count);
+			}
+			int k = 0;
+			for(Node<E> p = first; p != null; p = p.next) {
+				a[k++] = (T) p.item;
+			}
+			if(a.length > k) {
+				a[k] = null; 
+			}
+			return a;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public String toString() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return super.toString();
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public void clear() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			for(Node<E> f = first; f != null; ) {
+				f.item = null;
+				Node<E> n = f.next;
+				f.prev = null;
+				f.next = null;
+				f = n;
+			}
+			first = last = null;
+			count = 0;
+			notEmpty.signalAll();
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+//	public Iterator<E> iterator() {
+//		return new Itr();
+//	}
+	
+	@Override
+	public Iterator<E> descendingIterator() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -40,215 +671,5 @@ public class LinkedBlockingDeque<E> extends AbstractQueue<E> implements Blocking
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-	@Override
-	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int remainingCapacity() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int drainTo(com.jerry.soundcode.list.Collection<? super E> c) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int drainTo(com.jerry.soundcode.list.Collection<? super E> c,
-			int maxElements) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public E removeFirst() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E removeLast() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E pollFirst() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E pollLast() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E getFirst() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E getLast() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E peekFirst() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E peekLast() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void push(E t) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public E pop() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Iterator<E> descendingIterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void addFirst(E e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addLast(E e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public boolean offerFirst(E e) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean offerLast(E e) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void putFirst(E e) throws InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void putLast(E e) throws InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public boolean offerFirst(E e, long timeout, TimeUnit unit)
-			throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean offerLast(E e, long timeout, TimeUnit unit)
-			throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public E takeFirst() throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E takeLast() throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E pollFirst(long timeout, TimeUnit unit) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E pollLast(long timeout, TimeUnit unit) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean removeFirstOccurrence(Object o) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean removeLastOccurrence(Object o) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void put(E e) throws InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public boolean offer(E e, long timeout, TimeUnit unit)
-			throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public E take() throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E poll(long timeout, TimeUnit unit) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void pust(E e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	
 
 }
