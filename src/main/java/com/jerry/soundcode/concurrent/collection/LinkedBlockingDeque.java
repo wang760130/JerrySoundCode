@@ -1,5 +1,8 @@
 package com.jerry.soundcode.concurrent.collection;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
@@ -656,20 +659,138 @@ public class LinkedBlockingDeque<E> extends AbstractQueue<E> implements Blocking
 		}
 	}
 	
-//	public Iterator<E> iterator() {
-//		return new Itr();
-//	}
+	@Override
+	public Iterator<E> iterator() {
+		return new Itr();
+	}
 	
 	@Override
 	public Iterator<E> descendingIterator() {
-		// TODO Auto-generated method stub
-		return null;
+		return new DescendingItr();
 	}
 
-	@Override
-	public Iterator<E> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+	private abstract class AbstractItr implements Iterator<E> {
+		Node<E> next;
+		
+		E nextItem;
+		
+		private Node<E> lastRet;
+		
+		abstract Node<E> firstNode();
+		
+		abstract Node<E> nextNode(Node<E> n);
+		
+		AbstractItr() {
+			final ReentrantLock lock = LinkedBlockingDeque.this.lock;
+			lock.lock();
+			try {
+				next = firstNode();
+				nextItem = (next == null) ? null : next.item;
+			} finally {
+				lock.unlock();
+			}
+		}
+		
+		void advance() {
+			final ReentrantLock lock = LinkedBlockingDeque.this.lock;
+			lock.lock();
+			try {
+				Node<E> s = firstNode();
+				if(s == next) {
+					next = firstNode();
+				} else {
+					while(s != null && s.item == null) {
+						s = nextNode(s);
+					}
+					next = s;
+				}
+				
+			} finally {
+				lock.unlock();
+			}
+		}
+		
+		public boolean hasNext() {
+			return next != null;
+		}		
+		
+		public E next() {
+			if(next == null) {
+				throw new NoSuchElementException();
+			}
+			lastRet = next;
+			E x = nextItem;
+			advance();
+			return x;
+		}
+		
+		public void remove() {
+			Node<E> n = lastRet;
+			if(n == null) {
+				throw new IllegalStateException();
+			}
+			lastRet = null;
+			
+			final ReentrantLock lock = LinkedBlockingDeque.this.lock;
+			lock.lock();
+			try {
+				if(n.item != null) {
+					unlink(n);
+				}
+			} finally {
+				lock.unlock();
+			}
+		}
 	}
-
+	
+	private class Itr extends AbstractItr {
+		Node<E> firstNode() {
+			return first;
+		}
+		
+		Node<E> nextNode(Node<E> n) {
+			return n.next;
+		}
+	}
+	
+	private class DescendingItr extends AbstractItr {
+		Node<E> firstNode() {
+			return last;
+		}
+		
+		Node<E> nextNode(Node<E> n) {
+			return n.prev;
+		}
+	}
+	
+	private void writeObject(ObjectOutputStream s) throws IOException {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		
+		try {
+			s.defaultWriteObject();
+			for(Node<E> p = first; p != null; p = p.next) {
+				s.writeObject(p.item);
+			}
+			s.writeObject(null);
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		count = 0;
+		first = null;
+		last = null;
+		for(;;) {
+			E item = (E)s.readObject();
+			if(item == null) {
+				break;
+			}
+			add(item);
+		}
+	}
+	
 }
