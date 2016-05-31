@@ -39,19 +39,31 @@ public class PriorityQueue<E> extends AbstractQueue<E> implements Serializable {
 		this.comparator = comparator;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public PriorityQueue(Collection<? extends E> c) {
 		initFromCollection(c);
 		if (c instanceof SortedSet) {
-//            comparator = (Comparator<? super E>)
-//                ((SortedSet<? extends E>)c).comparator();
+			comparator = (Comparator<? super E>)
+                ((SortedSet<? extends E>)c).comparator();
 		} else if (c instanceof PriorityQueue) {
-//            comparator = (Comparator<? super E>)
-//                ((PriorityQueue<? extends E>)c).comparator();
+			comparator = (Comparator<? super E>)
+	                ((PriorityQueue<? extends E>)c).comparator();
 		} else {
             comparator = null;
             heapify();
         }
-		comparator = null;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public PriorityQueue(PriorityQueue<? extends E> c) {
+		comparator = (Comparator<? super E>)c.comparator;
+		initFromCollection(c);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public PriorityQueue(SortedSet<? extends E> c) {
+		comparator = (Comparator<? super E>)c.comparator();
+		initFromCollection(c);
 	}
 	
 	private void initFromCollection(Collection<? extends E> c) {
@@ -61,6 +73,15 @@ public class PriorityQueue<E> extends AbstractQueue<E> implements Serializable {
 		}
 		queue = a;
 		size = a.length;
+	}
+	
+	private void grow(int minCapacity) {
+		if(minCapacity < 0) {
+			throw new OutOfMemoryError();
+		}
+		
+		int oldCapacity = queue.length;
+		// TODO
 	}
 	
 	private void siftDown(int k, E x) {
@@ -87,6 +108,10 @@ public class PriorityQueue<E> extends AbstractQueue<E> implements Serializable {
 		for(int i = (size >>> 1) - 1; i >=0; i--) {
 			siftDown(i, (E) queue[i]);
 		}
+	}
+	
+	public Comparator<? super E> comparator() {
+		return comparator;
 	}
 	
 	@Override
