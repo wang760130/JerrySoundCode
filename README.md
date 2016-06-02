@@ -1,14 +1,13 @@
 Java 源码分析
 ===================
 1. 基础集合
-	Arrays
-	Collections
 	List
 		ArrayList (done)
 		Vector  (done)
 		LinkedList  (done)
 		Stack  (done)
 		ReferenceQueue  (done)
+		ArrayDeque  (done)
 	Set
 		HashSet  (done)
 		TreeSet  (done)
