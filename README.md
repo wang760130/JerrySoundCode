@@ -25,7 +25,7 @@ Java 源码分析
 2. 并发
 	collection
 		ArrayBlockingQueue  (done)
-		LinkedBlockingDeque 
+		LinkedBlockingDeque  (done)
 		LinkedBlockingQueue  (done)
 		PriorityBlockingQueue
 		ConcurrentHashMap  (done)
@@ -65,7 +65,7 @@ Java 源码分析
 		Semaphore
 3. 多线程
 	Runnable   (done)
-	Thread  (done)
+	Thread  
 	ThreadLocal	  (done)
 	Callable
 	Executor
