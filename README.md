@@ -56,8 +56,6 @@ Java 源码分析
 		Condition
 	other
 		ForkJoinPool
-		Queue / Deque
-		ConcurrentMap
 		CountDownLatch
 		CyclicBarrier
 		Exchanger
