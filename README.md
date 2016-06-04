@@ -26,7 +26,7 @@ Java 源码分析
 		ArrayBlockingQueue  (done)
 		LinkedBlockingDeque  (done)
 		LinkedBlockingQueue  (done)
-		PriorityBlockingQueue
+		PriorityBlockingQueue (done)
 		ConcurrentHashMap  (done)
 		ConcurrentLinkedQueue
 		ConcurrentLinkedDeque
@@ -36,6 +36,7 @@ Java 源码分析
 		CopyOnWriteArraySet
 		DelayQueue
 		LinkedTransferQueue
+		PriorityQueue  (done)
 	atomic 
 		AtomicBoolean  (done)
 		AtomicInteger  (done)
