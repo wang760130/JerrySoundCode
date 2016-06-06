@@ -12,13 +12,12 @@ public class SocketClient {
 	
 	String host = "localhost";
 	int port = 8888;
-	Socket socket = null;
 	
 	public void sendServer() {
 		
 		try {
 			// 创建Socket对象（并连接服务器）
-			socket = new Socket(host, port);
+			Socket socket = new Socket(host, port);
 			
 			// 调用getOutputStream方法，进行I/O
 			PrintWriter pw = new PrintWriter(socket.getOutputStream());
@@ -34,6 +33,12 @@ public class SocketClient {
 			
 			String line = buffer.readLine();
 			System.out.println("Server return message:" + line);
+			
+			is.close();
+			reader.close();
+			buffer.close();
+			pw.close();
+			socket.close();
 			
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
