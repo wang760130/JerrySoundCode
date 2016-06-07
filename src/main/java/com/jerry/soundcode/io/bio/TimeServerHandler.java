@@ -33,15 +33,13 @@ public class TimeServerHandler implements Runnable {
 			pw = new PrintWriter(os, true);
 			
 			String body = null;
-			String currentTime = null;
 			while(true) {
 				body = in.readLine();
 				if(body == null) {
 					break;
 				}
 				System.out.println("The time server receive order : " + body);
-				currentTime = "time".equals(body) ? new Date(System.currentTimeMillis()).toString() : "bad order";
-				pw.println(currentTime);
+				pw.println(new Date(System.currentTimeMillis()).toString());
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
