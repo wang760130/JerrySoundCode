@@ -9,12 +9,14 @@ import java.net.UnknownHostException;
 
 public class SocketClient {
 	
-	String host = "127.0.0.1";
+	String host = "localhost";
 	int port = 8888;
+	
+	DatagramSocket socket = null;
 	
 	public void sendServer() {
 		try {
-			DatagramSocket socket = new DatagramSocket();
+			socket = new DatagramSocket();
 			
 			String str = "Hello! I am client";
 			byte[] data = str.getBytes();
@@ -26,17 +28,18 @@ public class SocketClient {
 			// 接收服务器端发送的数据
 			byte[] buf = new byte[100];
 			DatagramPacket packetReceive = new DatagramPacket(buf, 0, buf.length);
-			socket.receive(packetSend);
+			socket.receive(packetReceive);
 			String msg = new String(buf, 0, packetReceive.getLength());
 			System.out.println("receive :" + msg);
 			
-			socket.close();
 		} catch (SocketException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			socket.close();
 		}
 	}
 	

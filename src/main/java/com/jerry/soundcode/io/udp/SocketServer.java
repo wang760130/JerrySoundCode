@@ -10,16 +10,18 @@ public class SocketServer {
 	
 	int port = 8888;
 	
+	DatagramSocket socket = null;
+	
 	public void openServer() {
 		
 		try {
-			DatagramSocket socket = new DatagramSocket(port);
+			socket = new DatagramSocket(port);
 			
 			byte[] buf = new byte[100];
-			DatagramPacket packetReceive = new DatagramPacket(buf, 0, buf.length);
+			DatagramPacket packetReceive = new DatagramPacket(buf, buf.length);
 			socket.receive(packetReceive);
 			
-			String str = new String(buf, 0, packetReceive.getLength());
+			String str = new String(packetReceive.getData(), 0, packetReceive.getLength());
 			System.out.println(str);
 			
 			// 获取端口号
@@ -29,15 +31,15 @@ public class SocketServer {
 			// 向客户端传输数据
 			byte[] date = "this is server".getBytes();
 			
-			DatagramPacket packetSend = new DatagramPacket(date, 0, date.length, addr, port);
+			DatagramPacket packetSend = new DatagramPacket(date, date.length, addr, port);
 			socket.send(packetSend);
-			
-			socket.close();
 			
 		} catch (SocketException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			socket.close();
 		}
 	}
 	
