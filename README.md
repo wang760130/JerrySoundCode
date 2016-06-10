@@ -28,8 +28,7 @@ Java 源码分析
 		LinkedBlockingQueue  (done)
 		PriorityBlockingQueue (done)
 		ConcurrentHashMap  (done)
-		ConcurrentLinkedQueue
-		ConcurrentLinkedDeque
+		ConcurrentLinkedQueue (done)
 		ConcurrentSkipListMap
 		ConcurrentSkipListSet
 		CopyOnWriteArrayList

@@ -309,7 +309,6 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
         public void remove() {
             Node<E> l = lastRet;
             if (l == null) throw new IllegalStateException();
-            // rely on a future traversal to relink.
             l.setItem(null);
             lastRet = null;
         }
