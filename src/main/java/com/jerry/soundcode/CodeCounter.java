@@ -36,8 +36,8 @@ public class CodeCounter {
 				while ((line = br.readLine()) != null) {
 					parse(line);
 				}
-			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			} finally {
