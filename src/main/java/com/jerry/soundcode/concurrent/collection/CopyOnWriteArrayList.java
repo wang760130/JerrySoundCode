@@ -2,6 +2,7 @@ package com.jerry.soundcode.concurrent.collection;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 
 import com.jerry.soundcode.concurrent.atomic.Unsafe;
 import com.jerry.soundcode.concurrent.locks.ReentrantLock;
@@ -109,7 +110,8 @@ public class CopyOnWriteArrayList<E>
 		return indexOf(e, elements, index, elements.length);
 	}
 	
-	public int lastInfexOf(Object o) {
+	@Override
+	public int lastIndexOf(Object o) {
 		Object[] elements = getArray();
 		return lastIndexOf(o, elements, elements.length - 1);
 	}
@@ -120,6 +122,7 @@ public class CopyOnWriteArrayList<E>
 	}
 	
 	@SuppressWarnings("rawtypes")
+	@Override
 	public Object clone() {
 		try {
 			CopyOnWriteArrayList c = (CopyOnWriteArrayList) (super.clone());
@@ -154,11 +157,13 @@ public class CopyOnWriteArrayList<E>
 		return null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public E get(int index) {
 		return (E) (getArray()[index]);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public E set(int index, E element) {
 		final ReentrantLock lock = this.lock;
@@ -223,6 +228,7 @@ public class CopyOnWriteArrayList<E>
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public E remove(int index) {
 		final ReentrantLock lock = this.lock;
@@ -279,6 +285,7 @@ public class CopyOnWriteArrayList<E>
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private void removeRange(int fromIndex, int toIndex) {
 		final ReentrantLock lock = this.lock;
 		lock.lock();
@@ -331,8 +338,8 @@ public class CopyOnWriteArrayList<E>
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		Object[] elements = getArray();
-		int len = elements.length;
+//		Object[] elements = getArray();
+//		int len = elements.length;
 //		for(Object e : c) {
 //			if(indexOf(e, elements, 0, len) < 0) 
 //				return false;
@@ -372,52 +379,293 @@ public class CopyOnWriteArrayList<E>
 	
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		// TODO Auto-generated method stub
-		return false;
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			Object[] elements = getArray();
+			int len = elements.length;
+			if(len != 0) {
+				int newlen = 0;
+				Object[] temp = new Object[len];
+				for(int i = 0; i < len; ++i) {
+					Object element = elements[i];
+					if(c.contains(element)) {
+						temp[newlen++] = element;
+					}
+				}
+				if(newlen != len) {
+					setArray(Arrays.copyOf(temp, newlen));
+				}
+			}
+			return false;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public int addAllAbsent(Collection<? extends E> c) {
+		Object[] cs = c.toArray();
+		if(cs.length == 0) {
+			return 0;
+		}
+		
+		Object[] uniq = new Object[cs.length];
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			Object[] elements = getArray();
+			int len = elements.length;
+			int added = 0;
+			for(int i = 0; i < cs.length; ++i) {
+				Object e = cs[i];
+				if(indexOf(e, elements, 0, len) < 0 && indexOf(e, uniq, 0, added) < 0) {
+					uniq[added++] = e;
+				}
+			}
+			if(added > 0) {
+				Object[] newElements = Arrays.copyOf(elements, len + added);
+				System.arraycopy(uniq, 0, newElements, len, added);
+				setArray(newElements);
+			}
+			return added;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	@Override
+	public void clear() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			setArray(new Object[0]);
+		} finally {
+			lock.unlock();
+		}
 	}
 	
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
-		// TODO Auto-generated method stub
-		return false;
+		Object[] cs = c.toArray();
+		if(cs.length == 0) {
+			return false;
+		}
+		
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			Object[] elements = getArray();
+			int len = elements.length;
+			Object[] newElements = Arrays.copyOf(elements, len + cs.length);
+			System.arraycopy(cs, 0, newElements, len, cs.length);
+			setArray(newElements);
+			return true;
+		} finally {
+			lock.unlock();
+		}
 	}
 
+	public boolean addAll(int index, Collection<? extends E> c) {
+		Object[] cs = c.toArray();
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		
+		try {
+			Object[] elements = getArray();
+			int len = elements.length;
+			if(index > len || index < 0) {
+				throw new IndexOutOfBoundsException("Index: "+index+", Size: "+len);
+			}
+					
+			if(cs.length == 0) {
+				return false;
+			}
+			
+			int numMoved = len - index;
+			Object[] newElements;
+			if(numMoved == 0) {
+				newElements = Arrays.copyOf(elements, len + cs.length);
+			} else {
+				newElements = new Object[len + cs.length];
+				System.arraycopy(elements, 0, newElements, 0, index);
+				System.arraycopy(elements, index, newElements, index + cs.length, numMoved);
+			}
+			System.arraycopy(cs, 0, newElements, index, cs.length);
+			setArray(newElements);
+			return true;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	private void writeObject(java.io.ObjectOutputStream s)
+			throws java.io.IOException{
+
+		s.defaultWriteObject();
+
+		Object[] elements = getArray();
+		int len = elements.length;
+		s.writeInt(len);
+		for (int i = 0; i < len; i++)
+			s.writeObject(elements[i]);
+	}
+	
+	private void readObject(java.io.ObjectInputStream s)
+		throws java.io.IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		resetLock();
+		int len = s.readInt();
+		Object[] elements = new Object[len];
+		for (int i = 0; i < len; i++)
+			elements[i] = s.readObject();
+	    setArray(elements);
+	}
+	
 	@Override
-	public void clear() {
-		// TODO Auto-generated method stub
+	public String toString() {
+		return Arrays.toString(getArray());
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if(o == this) {
+			return true;
+		}
+		
+		if(!(o instanceof List)) {
+			return false;
+		}
+		
+		List<?> list = (List<?>)(o);
+		Iterator<?> it = list.iterator();
+		Object[] elements = getArray();
+		int len = elements.length;
+		for(int i = 0; i < len; ++i) {
+			if(!it.hasNext() || !eq(elements[i], it.next())) {
+				return false;
+			}
+			if(it.hasNext()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	@Override
+	public int hashCode() {
+		int hashCode = 1;
+		Object[] elements = getArray();
+		int len = elements.length;
+		for(int i = 0; i < len; ++i) {
+			Object obj = elements[i];
+			hashCode = 31 * hashCode + (obj == null ? 0 : obj.hashCode());
+		}
+		return hashCode;
+	}
+	
+	@Override
+	public Iterator<E> iterator() {
+		return new COWIterator<E>(getArray(), 0);
+	}
+	
+	@Override
+	public ListIterator<E> listIterator() {
+		return new COWIterator<E>(getArray(), 0);
+	}
+	
+	@Override
+	public ListIterator<E> listIterator(final int index) {
+		Object[] elements = getArray();
+		int len = elements.length;
+		if(index < 0 || index > len) {
+			throw new IndexOutOfBoundsException("Index: "+index);
+		}
+				
+		return new COWIterator<E>(elements, index);
+	}
+	
+	@Override
+	public List<E> subList(int fromIndex, int toIndex) {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			Object[] elements = getArray();
+			int len = elements.length;
+			if(fromIndex < 0 || toIndex > len || fromIndex > toIndex) {
+				throw new IndexOutOfBoundsException();
+			}
+//			return  new COWIterator<E>(this, fromIndex, toIndex);
+			return null;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	private static class COWIterator<E> implements ListIterator<E> {
+		private final Object[] snapshot;
+		
+		private int cursor;
+		
+		private COWIterator(Object[] elements, int initialCursor) {
+			cursor = initialCursor;
+			snapshot = elements;
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return cursor < snapshot.length;
+		}
+		
+		@Override
+		public boolean hasPrevious() {
+			return cursor > 0;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public E next() {
+			if(!hasNext()) {
+				throw new NoSuchElementException();
+			}
+			return (E) snapshot[cursor++];
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public E previous() {
+			if(!hasPrevious()) {
+				throw new NoSuchElementException();
+			}
+			return (E) snapshot[--cursor];
+		}
+		
+		@Override
+		public int nextIndex() {
+			return cursor;
+		}
+		
+		@Override
+		public int previousIndex() {
+			return cursor - 1;
+		}
+		
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+		
+		@Override
+		public void set(E t) {
+			throw new UnsupportedOperationException();
+		}
+		
+		@Override
+		public void add(E t) {
+			throw new UnsupportedOperationException();
+		}
 		
 	}
 
-	@Override
-	public int lastIndexOf(Object o) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public ListIterator<E> listIterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ListIterator<E> listIterator(int index) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<E> subList(int fromIndex, int toIndex) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Iterator<E> iterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	private static final Unsafe unsafe = Unsafe.getUnsafe();
 	private static final long lockOffset;
 	

@@ -31,7 +31,7 @@ Java 源码分析
 		ConcurrentLinkedQueue (done)
 		ConcurrentSkipListMap
 		ConcurrentSkipListSet
-		CopyOnWriteArrayList
+		CopyOnWriteArrayList  (done)
 		CopyOnWriteArraySet
 		DelayQueue
 		LinkedTransferQueue
@@ -97,3 +97,6 @@ http://www.cnblogs.com/end/archive/2012/10/25/2738493.html
 
 从零开始学Guava
 http://blog.csdn.net/column/details/getting0-1guava.html
+
+深入浅出Java并发包—读写锁ReentrantReadWriteLock原理分析(一)  
+http://yhjhappy234.blog.163.com/blog/static/3163283220135178183769/
