@@ -100,3 +100,6 @@ http://blog.csdn.net/column/details/getting0-1guava.html
 
 深入浅出Java并发包—读写锁ReentrantReadWriteLock原理分析(一)  
 http://yhjhappy234.blog.163.com/blog/static/3163283220135178183769/
+
+ java并发之线程池Executor 核心源码解析
+http://blog.csdn.net/followmyinclinations/article/details/51693164
