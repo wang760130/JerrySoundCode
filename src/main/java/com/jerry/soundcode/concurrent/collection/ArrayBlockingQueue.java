@@ -25,24 +25,37 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 
 	private static final long serialVersionUID = 1L;
 
+	/** 真正存入数据的数组*/  
 	private final E[] items;
 	
+	/** take, poll, peek or remove的下一个索引 */
 	private int takeIndex;
 	
+	/** put, offer, or add的下一个索引 */  
 	private int putIndex;
 	
+	/**队列中元素个数*/ 
 	private int count;
 	
+	/**可重入锁 */  
 	private final ReentrantLock lock;
 	
+	/** 队列不为空的条件 */ 
 	private final Condition notEmpty;
 	
+	/** 队列未满的条件 */ 
 	private final Condition notFull;
 	
+	/** 
+     *当前元素个数+1 
+     */  
 	final int inc(int i) {
 		return (++i == items.length) ? 0 : i;
 	}
 	
+	/** 
+     *当前元素个数-1 
+     */  
 	final int dec(int i) {
 		return ((i == 0) ? items.length : i) - 1;
 	}
@@ -51,7 +64,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 		items[putIndex] = x;
 		putIndex = inc(putIndex);
 		++count;
-		notEmpty.signal();
+		notEmpty.signal(); //有一个元素加入成功，那肯定队列不为空
 	}
 	
 	private E extract() {
@@ -60,7 +73,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 		items[takeIndex] = null;
 		takeIndex = inc(takeIndex);
 		--count;
-		notFull.signal();
+		notFull.signal(); //有一个元素取出成功，那肯定队列不满
 		return x;
 	}
 	
@@ -95,7 +108,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 		}
 		
 		this.items = (E[]) new Object[capacity];
-		lock = new ReentrantLock(fair);
+		lock = new ReentrantLock(fair); //是否为公平锁，如果是的话，那么先到的线程先获得锁对象。  
+        //否则，由操作系统调度由哪个线程获得锁，一般为false，性能会比较高  
 		notEmpty = lock.newCondition();
 		notFull = lock.newCondition();
 	}
@@ -125,8 +139,8 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		
-		try {
-			if(count == items.length) {
+		try { 
+			if(count == items.length) { //超过数组的容量  	
 				return false;
 			} else {
 				insert(e);
