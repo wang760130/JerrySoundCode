@@ -32,7 +32,7 @@ Java 源码分析
 		ConcurrentSkipListMap
 		ConcurrentSkipListSet
 		CopyOnWriteArrayList  (done)
-		CopyOnWriteArraySet
+		CopyOnWriteArraySet (done)
 		DelayQueue
 		LinkedTransferQueue
 		PriorityQueue  (done)
