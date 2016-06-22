@@ -1,6 +1,7 @@
 package com.jerry.soundcode.concurrent.locks;
 
 import com.jerry.soundcode.concurrent.atomic.Unsafe;
+import com.jerry.soundcode.thread.Thread;
 
 /**
  * LockSupport是JDK中比较底层的类，用来创建锁和其他同步工具类的基本线程阻塞原语。
