@@ -3,6 +3,7 @@ package com.jerry.soundcode.concurrent.locks;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
+import com.jerry.soundcode.thread.Thread;
 import com.jerry.soundcode.list.Collection;
 
 /**
@@ -224,9 +225,7 @@ public class ReentrantLock implements Serializable {
 	
 	public String toString() {
         Thread o = sync.getOwner();
-        return super.toString() + ((o == null) ?
-                                   "[Unlocked]" :
-                                   "[Locked by thread " + o.getName() + "]");
+        return super.toString() + ((o == null) ? "[Unlocked]" :"[Locked by thread " + o.getName() + "]");
     }
 	
 }
