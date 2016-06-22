@@ -1,6 +1,7 @@
 package com.jerry.soundcode.concurrent.locks;
 
 import java.io.Serializable;
+import com.jerry.soundcode.thread.Thread;
 
 public abstract class AbstractOwnableSynchronizer implements Serializable {
 
