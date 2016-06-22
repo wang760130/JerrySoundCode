@@ -94,6 +94,26 @@ public class Thread implements Runnable {
 		return null;
 	}
 
+	public static boolean interrupted() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public void interrupt() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public String getName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public long getId() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 	
 
 }
