@@ -53,12 +53,6 @@ Java 源码分析
 		ReentrantLock  (done)
 		ReentrantReadWriteLock  (done)
 		LockSupport (done)
-	other
-		ForkJoinPool
-		CountDownLatch
-		CyclicBarrier
-		Exchanger
-		Semaphore
 3. 多线程
 	Runnable   (done)
 	Thread  
@@ -75,7 +69,10 @@ Java 源码分析
 	Executors
 	ExecutorService
 	ExecutorCompletionService
-	
+	ForkJoinPool
+	CyclicBarrier
+	Exchanger
+	Semaphore
 4. Java IO & Java NIO
 	
 5. 类加载
