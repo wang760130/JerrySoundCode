@@ -54,6 +54,10 @@ Java 源码分析
 		ReentrantReadWriteLock  (done)
 		LockSupport (done)
 3. 多线程
+	Callable (done)
+	CountDownLatch (done)
+	CyclicBarrier (done)
+
 	Runnable   (done)
 	Thread  
 	ThreadLocal	  (done)
@@ -61,8 +65,6 @@ Java 源码分析
 	Executor
 	Callable
 	Semaphore
-	CountDownLatch
-	CyclicBarrier
 	Executors
 	Future
 	ThreadFactory
