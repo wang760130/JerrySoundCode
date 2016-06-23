@@ -7,6 +7,14 @@ import java.util.concurrent.TimeoutException;
 import com.jerry.soundcode.concurrent.locks.Condition;
 import com.jerry.soundcode.concurrent.locks.ReentrantLock;
 
+/**
+ * 应用场景 
+ * 在某种需求中，比如一个大型的任务，常常需要分配好多子任务去执行，只有当所有子任务都执行完成时候，才能执行主任务，这时候，就可以选择CyclicBarrier了。 
+ * 
+ * 实例分析 
+ * 我们需要统计全国的业务数据。其中各省的数据库是独立的，也就是说按省分库。并且统计的数据量很大，统计过程也比较慢。为了提高性能，快速计算。
+ * 我们采取并发的方式，多个线程同时计算各省数据，最后再汇总统计。在这里CyclicBarrier就非常有用
+ */
 public class CyclicBarrier {
 
 	private static class Generation {
