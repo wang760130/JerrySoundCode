@@ -114,6 +114,11 @@ public class Thread implements Runnable {
 		return 0;
 	}
 
+	public boolean isInterrupted() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 	
 
 }
