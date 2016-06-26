@@ -51,7 +51,7 @@ public class CountDownLatch {
 	}
 	
 	public void await() throws InterruptedException {
-		sync.acquireShoredInterruptibly(1);
+		sync.acquireSharedInterruptibly(1);
 	}
 	
 	public boolean await(long timeout, TimeUnit unit) throws InterruptedException{
