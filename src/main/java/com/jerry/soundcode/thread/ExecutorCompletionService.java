@@ -1,6 +1,12 @@
 package com.jerry.soundcode.thread;
 
-import java.util.concurrent.*;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.TimeUnit;
+
+import com.jerry.soundcode.concurrent.collection.BlockingQueue;
+import com.jerry.soundcode.concurrent.collection.LinkedBlockingQueue;
 
 public class ExecutorCompletionService<V> implements CompletionService<V> {
 	
@@ -11,7 +17,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 	private class QueueingFuture extends FutureTask<Void> {
 		public QueueingFuture(RunnableFuture<V> task) {
 			super(task, null);
-			this.task = task;
+			this.task = (Future<V>) task;
 		}
 		protected void done() {
 			competionQueue.add(task);
@@ -63,7 +69,8 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 		}
 		RunnableFuture<V> f = newTaskFor(task);
 		executor.execute((Runnable) new QueueingFuture(f));
-		return f;
+//		return f;
+		return null;
 	}
 
 	@Override
@@ -73,7 +80,8 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 		}
 		RunnableFuture<V> f = newTaskFor(task, result);
 		executor.execute((Runnable) new QueueingFuture(f));
-		return f;
+//		return f;
+		return null;
 	}
 
 	@Override
