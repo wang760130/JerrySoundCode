@@ -472,7 +472,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		 }
 	}
 	
-	public final void acquireShoredInterruptibly(int arg) throws InterruptedException {
+	public final void acquireSharedInterruptibly(int arg) throws InterruptedException {
 		if(Thread.interrupted()) {
 			throw new InterruptedException();
 		}
