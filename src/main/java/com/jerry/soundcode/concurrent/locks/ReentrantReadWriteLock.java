@@ -318,7 +318,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, Serializable{
 
 		@Override
 		public void lockInterruptibly() throws InterruptedException {
-			sync.acquireShoredInterruptibly(1);
+			sync.acquireSharedInterruptibly(1);
 		}
 
 		@Override
