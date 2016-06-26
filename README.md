@@ -57,6 +57,26 @@ Java 源码分析
 	Callable (done)
 	CountDownLatch (done)
 	CyclicBarrier (done)
+	Executor (done)
+	Exchanger (done)
+	ExecutorCompletionService (done)
+	Executors (done)
+	ExecutorService (done)
+	Future (done)
+	FutureTask
+	LinkedBlockingDeque
+	LinkedBlockingQueue
+	PriorityBlockingQueue
+	RejectedExecutionHandler
+	RunnableFuture
+	RunnableScheduledFuture
+	ScheduledExecutorService
+	ScheduledFutrue
+	ScheduleThreadPoolExecutor
+	Semaphore
+	SynchronousQueue
+	ThreadFactory
+	ThreadPoolExecutor
 
 	Runnable   (done)
 	Thread  
