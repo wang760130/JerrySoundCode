@@ -91,6 +91,10 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
 		return (putLock.isHeldByCurrentThread() && taskLock.isHeldByCurrentThread());
 	}
 	
+	public LinkedBlockingQueue() {
+		this(Integer.MAX_VALUE);
+	}
+	
 	public LinkedBlockingQueue(int capacity) {
 		if(capacity <= 0) {
 			throw new IllegalArgumentException();
