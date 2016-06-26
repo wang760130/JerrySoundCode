@@ -29,12 +29,20 @@ public class LockSupport {
 		unsafe.putObject(thread, parkBlockerOffset, arg);
 	}
 	
+	/**
+	 * unpark相当于释放许可(或使许可变为可用)。调用unpark方法会使目标线程在之前阻塞(调用park)地方继续执行，如果目标线程之前没有调用过park，那么在接下来调用park时不会阻塞。
+	 * @param thread
+	 */
 	public static void unpark(Thread thread) {
 		if(thread != null) {
 			unsafe.unpark(thread);
 		}
 	}
 	
+	/**
+	 * park相当于获取可用的许可(初始的许可不可用)，调用park()方法会使得当前调用线程阻塞(之前不要调用unpark方法)
+	 * @param blocker
+	 */
 	public static void park(Object blocker) {
 		Thread thread = Thread.currentThread();
 		setBlocker(thread, blocker);
