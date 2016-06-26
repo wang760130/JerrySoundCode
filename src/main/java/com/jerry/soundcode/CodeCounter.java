@@ -15,7 +15,7 @@ public class CodeCounter {
 	private static long normalLine = 0;
 	private static long totalLine = 0;
 	private static boolean comment = false;
-
+	
 	public static void main(String[] args) {
 		File file = new File(System.getProperty("user.dir")); // 在这里输入需要统计的文件夹路径
 		getChild(file);
