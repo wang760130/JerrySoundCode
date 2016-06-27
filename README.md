@@ -63,14 +63,11 @@ Java 源码分析
 	Executors (done)
 	ExecutorService (done)
 	Future (done)
-	FutureTask
-	LinkedBlockingDeque
-	LinkedBlockingQueue
-	PriorityBlockingQueue
-	RejectedExecutionHandler
-	RunnableFuture
-	RunnableScheduledFuture
-	ScheduledExecutorService
+	FutureTask  (done)
+	RejectedExecutionHandler (done)
+	RunnableFuture  (done)
+	RunnableScheduledFuture (done)
+	ScheduledExecutorService  (done)
 	ScheduledFutrue
 	ScheduleThreadPoolExecutor
 	Semaphore
