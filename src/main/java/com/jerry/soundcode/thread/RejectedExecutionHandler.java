@@ -1,4 +1,4 @@
-package com.jerry.soundcode.concurrent.collection;
+package com.jerry.soundcode.thread;
 
 import com.jerry.soundcode.thread.ThreadPoolExecutor;
 
