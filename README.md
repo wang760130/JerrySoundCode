@@ -68,7 +68,7 @@ Java 源码分析
 	RunnableFuture  (done)
 	RunnableScheduledFuture (done)
 	ScheduledExecutorService  (done)
-	ScheduledFutrue
+	ScheduledFuture (done)
 	ScheduleThreadPoolExecutor
 	Semaphore
 	SynchronousQueue
