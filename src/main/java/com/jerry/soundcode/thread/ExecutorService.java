@@ -1,8 +1,8 @@
 package com.jerry.soundcode.thread;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.jerry.soundcode.list.Collection;
 import com.jerry.soundcode.list.List;
@@ -31,6 +31,6 @@ public interface ExecutorService extends Executor{
 	
 	<T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException;
 	
-	<T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit);
+	<T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException;
 		
 }
