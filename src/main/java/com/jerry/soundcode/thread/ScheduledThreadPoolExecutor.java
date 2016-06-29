@@ -166,7 +166,6 @@ public class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements S
     
     
 	private void purge() {
-		// TODO Auto-generated method stub
 		
 	}
 
