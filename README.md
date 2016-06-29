@@ -122,3 +122,6 @@ http://blog.csdn.net/followmyinclinations/article/details/51693164
 
 Java并发编程与技术内幕:ArrayBlockingQueue、LinkedBlockingQueue及SynchronousQueue源码解析
 http://blog.csdn.net/evankaka/article/details/51706109
+
+记忆力不好的博客
+http://blog.csdn.net/chenchaofuck1
