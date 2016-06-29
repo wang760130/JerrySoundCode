@@ -65,6 +65,10 @@ public class FutureTask<V> implements RunnableFuture<V> {
 	public void run() {
 		sync.innerRun();
 	}
+	
+	protected boolean runAndReset() {
+		return sync.innerRunAndReset();
+	}
 
 
 	private final class Sync extends AbstractQueuedSynchronizer {
@@ -208,5 +212,23 @@ public class FutureTask<V> implements RunnableFuture<V> {
 			}
 		}
 		
+		boolean innerRunAndReset() {
+			if(!compareAndSetState(0, RUNNING)) {
+				return false;
+			}
+			
+			try {
+				runner = Thread.currentThread();
+				if(getState() == RUNNING) {
+					callable.call();
+				}
+				
+				runner = null;
+				return compareAndSetState(RUNNING, 0);
+			} catch(Exception ex) {
+				innerSetException(ex);
+				return false;
+			}
+		}
 	}
 }
