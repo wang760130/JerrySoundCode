@@ -4,6 +4,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.jerry.soundcode.concurrent.atomic.AtomicLong;
+import com.jerry.soundcode.concurrent.collection.DelayQueue;
 import com.jerry.soundcode.concurrent.collection.Delayed;
 import com.jerry.soundcode.list.Collection;
 import com.jerry.soundcode.list.List;
@@ -83,14 +84,118 @@ public class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements S
 		public boolean isPeriodic() {
 			return period != 0;
 		}
-    	
+		
+		private void runPeriodic() {
+			boolean ok = ScheduledFutureTask.super.runAndReset();
+			boolean down = isShutdown();
+			
+			if(ok && (!down || (getContinueExistingPeriodicTasksAfterShutdownPolicy() && !isStopped()))) {
+				long p = period;
+				if(p > 0) {
+					time += p;
+				} else {
+					time = tiggerTime(-p);
+				}
+				ScheduledThreadPoolExecutor.super.getQueue().add(this);
+			}
+		}
+		
+		public void run() {
+			if(isPeriodic()) {
+				runPeriodic();
+			} else {
+				ScheduledFutureTask.super.run();
+			}
+		}
     }
     
+    private void delayedExecute(Runnable command) {
+    	if(isShutdown()) {
+    		reject(command);
+    		return ;
+    	}
+    	
+    	if(getPoolSize() < getPoolSize()) {
+    		prestartCoreThread();
+    	}
+    	super.getQueue().add(command);
+    }
+    
+    private void cancelUnwantedTasks() {
+    	boolean keepDelayed = getExecuteExistingDelayedTasksAfterShutdownPolicy();
+    	boolean keepPeriodic = getContinueExistingPeriodicTasksAfterShutdownPolicy();
+    	
+    	if(!keepDelayed && !keepPeriodic) {
+    		super.getQueue().clear();
+    	} else if(keepDelayed || keepPeriodic) {
+    		Object[] entries = super.getQueue().toArray();
+    		for(int i = 0; i < entries.length; ++i) {
+    			Object e = entries[i];
+    			if(e instanceof RunnableScheduledFuture) {
+    				RunnableScheduledFuture<?> t = (RunnableScheduledFuture<?>) e;
+    				if(t.isPeriodic() ? !keepPeriodic : !keepDelayed) {
+    					t.cancel(false);
+    				}
+    			}
+    		}
+    		
+    		entries = null;
+    		purge();
+    	}
+    }
+    
+    public boolean remove(Runnable task) {
+    	if(!(task instanceof RunnableScheduledFuture)) {
+    		return false;
+    	}
+    	return getQueue().remove(task);
+    }
+    
+    protected <V> RunnableScheduledFuture<V> decorateTask(Runnable runnable, RunnableScheduledFuture<V> task) {
+    	return task;
+    }
+    
+    protected <V> RunnableScheduledFuture<V> decorateTask(Callable<V> callable, RunnableScheduledFuture<V> task) {
+    	return task;
+    }
+    
+    public ScheduledThreadPoolExecutor(int corePoolSize) {
+    	super(corePoolSize, Integer.MAX_VALUE, 0, TimeUnit.NANOSECONDS, new DelayQueue());
+    }
+    
+    
+    
+	private void purge() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private boolean getExecuteExistingDelayedTasksAfterShutdownPolicy() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	private void prestartCoreThread() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private int getPoolSize() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	private void reject(Runnable command) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	@Override
 	public void shutdown() {
 //		boolean ok = ScheduledFutureTask.super.runAndReset();
 	}
 
+	
 	@Override
 	public List<Runnable> shutdownNow() {
 		// TODO Auto-generated method stub
@@ -197,5 +302,7 @@ public class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements S
 		return null;
 	}
 
-	
+	public boolean getContinueExistingPeriodicTasksAfterShutdownPolicy() {
+		return continueExistingPeriodicTasksAfterShutdown;
+	}
 }
