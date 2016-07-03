@@ -204,10 +204,96 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 		private void clean(SNode s) {
 			s.item = null;
 			s.waiter = null;
+			
+			SNode past = s.next;
+			if(past != null && past.isCancelled()) {
+				past = past.next;
+			}
+			
+			SNode p ;
+			while((p = head) != null && p != past && p.isCancelled()) {
+				casHead(p, p.next);
+			}
+			
+			while(p != null && p != past) {
+				SNode n = p.next;
+				if(n != null && n.isCancelled()) {
+					p.casNext(n, n.next) ;
+ 				} else {
+ 					p = n;
+ 				}
+			}
 		}
+	}
+	
+	static final class TransferQueue extends Transferer {
+		static final class QNode {
+			volatile QNode next;
+			volatile Object item;
+			volatile Thread waiter;
+			
+			final boolean isData;
+			
+			QNode(Object item, boolean isData) {
+				this.item = item;
+				this.isData = isData;
+			}
+			
+			static final AtomicReferenceFieldUpdater<QNode, QNode> nextUpdater = AtomicReferenceFieldUpdater.newUpdater(QNode.class, QNode.class, "next");
+			
+			boolean casNext(QNode cmp, QNode val) {
+				return (next == cmp && nextUpdater.compareAndSet(this, cmp, val));
+			}
+			
+			static final AtomicReferenceFieldUpdater<QNode, Object> itemUpdater = AtomicReferenceFieldUpdater.newUpdater(QNode.class, Object.class, "item");
+			
+			boolean casItem(Object cmp, Object val) {
+				return (item == cmp && itemUpdater.compareAndSet(this, cmp, val));
+			}
+			
+			void tryCancel(Object cmp) {
+				itemUpdater.compareAndSet(this, cmp, this);
+			}
+			
+			boolean isOffList() {
+				return next == this;
+			}
+		}
+		
+		transient volatile QNode head;
+		transient volatile QNode tail;
+		
+		transient volatile QNode cleanMe;
+		
+		public TransferQueue() {
+			QNode h = new QNode(null, false);
+			head = h;
+			tail = h;
+		}
+		
+		static final AtomicReferenceFieldUpdater<TransferQueue, QNode> headUpdater = AtomicReferenceFieldUpdater.newUpdater(TransferQueue.class, QNode.class, "head");
 
+		void advanceHead(QNode h, QNode nh) {
+			if(h == head && headUpdater.compareAndSet(this, h, nh)) {
+				h.next = h;
+			}
+		}
+		
+		static final AtomicReferenceFieldUpdater<TransferQueue, QNode> tailUpdater = AtomicReferenceFieldUpdater.newUpdater(TransferQueue.class, QNode.class, "tail");
+		
+		void advanceTail(QNode t, QNode nt) {
+			if(tail == t) {
+				tailUpdater.compareAndSet(this, t, nt);
+			}
+		}
 		
 		
+		
+		@Override
+		Object transfer(Object e, boolean timed, long nanos) {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	}
 	
 	@Override
