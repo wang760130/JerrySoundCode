@@ -1,10 +1,14 @@
 package com.jerry.soundcode.concurrent.collection;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import com.jerry.soundcode.concurrent.locks.LockSupport;
+import com.jerry.soundcode.concurrent.locks.ReentrantLock;
 import com.jerry.soundcode.list.AbstractQueue;
 import com.jerry.soundcode.list.Collection;
 import com.jerry.soundcode.list.Iterator;
@@ -255,9 +259,14 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 				itemUpdater.compareAndSet(this, cmp, this);
 			}
 			
+			boolean isCancelled() {
+				return item == this;
+			}
+			
 			boolean isOffList() {
 				return next == this;
 			}
+
 		}
 		
 		transient volatile QNode head;
@@ -287,88 +296,397 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
 			}
 		}
 		
+		static final AtomicReferenceFieldUpdater<TransferQueue, QNode> cleanMeUpdater = AtomicReferenceFieldUpdater.newUpdater(TransferQueue.class, QNode.class, "cleanMe");
 		
+		boolean casCleanMe(QNode cmp, QNode val) {
+			return (cleanMe == cmp && cleanMeUpdater.compareAndSet(this, cmp, val));
+		}
 		
 		@Override
 		Object transfer(Object e, boolean timed, long nanos) {
-			// TODO Auto-generated method stub
-			return null;
+			QNode s = null;
+			boolean isData = (e != null);
+			
+			for(;;) {
+				QNode t = tail;
+				QNode h = head;
+				if(t == null || h == null) {
+					continue;
+				}
+				
+				if(h == t || t.isData == isData) {
+					QNode tn = t.next;
+					if(t != tail) {
+						continue;
+					}
+					
+					if(tn != null) {
+						advanceTail(t, tn);
+						continue;
+					}
+					
+					if(timed && nanos <= 0) {
+						return null;
+					}
+					
+					if(s == null) {
+						s = new QNode(e, isData);
+					}
+					
+					if(!t.casNext(null, s)) {
+						continue;
+					}
+					
+					advanceTail(t, s);
+					
+					Object x = awaitFulfill(s, e, timed, nanos);
+					if(x == s) {
+						clean(t, s);
+						return null;
+					}
+					
+					if(!s.isOffList()) {
+						advanceHead(t, s);
+						if(x != null) {
+							s.item = s;
+						}
+						s.waiter = null;
+					}
+					return (x != null) ? x : e;
+				} else {
+					QNode m = h.next;
+					if(t != tail || m == null || h != head) {
+						continue;
+					}
+					
+					Object x = m.item;
+					if(isData == (x != null) || x == m || !m.casItem(x, e)) {
+						advanceHead(h, m);
+						continue;
+					}
+					
+					advanceHead(h, m);
+					LockSupport.unpark(m.waiter);
+					return (x != null) ? x : e;
+				}
+			}
+			
+		}
+
+		Object awaitFulfill(QNode s, Object e, boolean timed, long nanos) {
+			long lastTime = (timed) ? System.nanoTime() : 0;
+			Thread w = Thread.currentThread();
+			int spins = ((head.next == s) ? (timed ? maxTimedSpins : maxUntimeSpins) : 0);
+			
+			for(;;) {
+				if(w.isInterrupted()) {
+					s.tryCancel(e);
+				}
+				
+				Object x = s.item;
+				if(x != e) {
+					return e;
+				}
+				
+				if(timed) {
+					long now = System.nanoTime();
+					nanos -= now - lastTime;
+					lastTime = now;
+					if(nanos <= 0) {
+						s.tryCancel(e);
+						continue;
+					}
+				}
+				
+				if(spins > 0) {
+					--spins;
+				} else if(s.waiter == null) {
+					s.waiter = w;
+				} else if(!timed) {
+					LockSupport.park(this);
+				} else if(nanos > spinForTimeoutThreshold) {
+					LockSupport.parkNanos(this, nanos);
+				}
+			}
+			
+		}
+		
+		void clean(QNode pred, QNode s) {
+			s.waiter = null;
+			
+			while(pred.next == s) {
+				QNode h = head;
+				QNode hn = h.next;
+				
+				if(hn != null && hn.isCancelled()) {
+					advanceHead(h, hn);
+					continue;
+				}
+				
+				QNode t = tail;
+				if(t == h) {
+					return ;
+				}
+				
+				QNode tn = t.next;
+				if(t != tail) {
+					continue;
+				}
+				
+				if(tn != null) {
+					advanceTail(t, tn);
+					continue;
+				}
+				
+				if(s != t) {
+					QNode sn = s.next;
+					if(sn == s || pred.casNext(s, sn)) {
+						return ;
+					}
+				}
+				
+				QNode dp = cleanMe;
+				if(dp != null) {
+					QNode d = dp.next;
+					QNode dn;
+					if(d == null || d == dp || !d.isCancelled() ||
+							(d != t && (dn = d.next) != null &&
+							dn != d && dp.casNext(d, dn))) {
+						casCleanMe(dp, null);
+					}
+					if(dp == pred) {
+						return ;
+					}
+				} else if(casCleanMe(null, pred)) {
+					return ;
+				}
+			}
+		}
+	}
+	
+	private transient volatile Transferer transferer;
+	
+	public SynchronousQueue() {
+		this(false);
+	}
+	
+	public SynchronousQueue(boolean fair) {
+		transferer = (fair) ? new TransferQueue() : new TransferStack();
+	}
+	
+	@Override
+	public void put(E o) throws InterruptedException {
+		if(o == null) {
+			throw new NullPointerException();
+		}
+		
+		if(transferer.transfer(o, false, 0) == null) {
+			Thread.interrupted();
+			throw new InterruptedException();
 		}
 	}
 	
 	@Override
-	public E poll() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public E peek() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean offer(E t) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean offer(E t, long timeout, TimeUnit unit)
+	public boolean offer(E o, long timeout, TimeUnit unit)
 			throws InterruptedException {
-		// TODO Auto-generated method stub
+		if(o == null) {
+			throw new NullPointerException();
+		}
+		
+		if(transferer.transfer(o, true, unit.toNanos(timeout)) != null) {
+			return true;
+		}
+		
+		if(!Thread.interrupted()) {
+			return false;
+		}
+		
 		return false;
 	}
-
+	
 	@Override
-	public void put(E t) throws InterruptedException {
-		// TODO Auto-generated method stub
-		
+	public boolean offer(E e) {
+		if(e == null) {
+			throw new NullPointerException();
+		}
+		return transferer.transfer(e, true, 0) != null;
 	}
-
+	
 	@Override
 	public E take() throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
+		Object e = transferer.transfer(null, false, 0);
+		if(e != null) {
+			return (E)e;
+		}
+		Thread.interrupted();
+		throw new InterruptedException();
 	}
-
+	
 	@Override
 	public E poll(long timeout, TimeUnit unit) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
+		Object e = transferer.transfer(null, true, unit.toNanos(unit.toNanos(timeout)));
+		if(e != null || !Thread.interrupted()) {
+			return (E)e;
+		}
+		throw new InterruptedException();
+	}
+	
+	@Override
+	public E poll() {
+		return (E) transferer.transfer(null, true, 0);
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		return true;
+	}
+	
+	@Override
+	public int size() {
+		return 0;
 	}
 
 	@Override
 	public int remainingCapacity() {
-		// TODO Auto-generated method stub
 		return 0;
+	}
+	
+	@Override
+	public void clear() {
+		
+	}
+	
+	@Override
+	public boolean contains(Object o) {
+		return false;
+	}
+	
+	@Override
+	public boolean remove(Object o) {
+		return false;
+	}
+	
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return c.isEmpty();
+	}
+	
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		return false;
+	}
+	
+	@Override
+	public E peek() {
+		return null;
+	}
+	
+	static class EmptyIterator<E> implements Iterator<E> {
+		public boolean hasNext() {
+			return false;
+		}
+		
+		public E next() {
+			throw new NoSuchElementException();
+		}
+		
+		public void remove() {
+			throw new IllegalStateException();
+		}
+	}
+	
+	@Override
+	public Iterator<E> iterator() {
+		return new EmptyIterator<E>();
 	}
 
 	@Override
+	public Object[] toArray() {
+		return new Object[0];
+	}
+	
+	@Override
+	public <T> T[] toArray(T[] a) {
+		if(a.length > 0) {
+			a[0] = null;
+		}
+		return a;
+	}
+	
+	@Override
 	public int drainTo(Collection<? super E> c) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(c == null) {
+			throw new NullPointerException();
+		}
+		
+		if(c == this) {
+			throw new IllegalArgumentException();
+		}
+		
+		int n = 0;
+		E e;
+		while( (e = poll()) != null) {
+			c.add(e);
+			++n;
+		}
+		return n;
 	}
 
 	@Override
 	public int drainTo(Collection<? super E> c, int maxElements) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(c == null) {
+			throw new NullPointerException();
+		}
+		if(c == this) {
+			throw new IllegalArgumentException();
+		}
+		int n = 0;
+		E e;
+		while(n < maxElements && (e = poll()) != null) {
+			c.add(e);
+			++n;
+		}
+		return n; 
 	}
-
-	@Override
-	public Iterator<E> iterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
 	
+	static class WaitQueue implements Serializable {}
 	
+	static class LifoWaitQueue extends WaitQueue {
+
+		private static final long serialVersionUID = 1L;
+		
+	}
+	
+	static class FifoWaitQueue extends WaitQueue {
+
+		private static final long serialVersionUID = 1L;
+		
+	}
+	
+	private ReentrantLock qlock;
+	private WaitQueue waitingProducers;
+	private WaitQueue waitingConsumers;
+	
+	private void writeObject(ObjectOutputStream s) throws IOException {
+		boolean fair = transferer instanceof TransferQueue;
+		if(fair) {
+			qlock = new ReentrantLock(true);
+			waitingProducers = new FifoWaitQueue();
+			waitingConsumers = new FifoWaitQueue();
+		} else {
+			qlock = new ReentrantLock();
+			waitingProducers = new LifoWaitQueue();
+			waitingConsumers = new LifoWaitQueue();
+		}
+		s.defaultWriteObject();
+	}
+	
+	private void readObject(final ObjectOutputStream s) throws IOException, ClassNotFoundException {
+		s.defaultWriteObject();
+		if(waitingProducers instanceof FifoWaitQueue) {
+			transferer = new TransferQueue();
+		} else {
+			transferer = new TransferStack();
+		}
+	}
 }
