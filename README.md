@@ -36,6 +36,7 @@ Java 源码分析
 		DelayQueue (done)
 		LinkedTransferQueue (done)
 		PriorityQueue  (done)
+		SynchronousQueue  (done)
 	atomic 
 		AtomicBoolean  (done)
 		AtomicInteger  (done)
@@ -71,8 +72,7 @@ Java 源码分析
 	ScheduledFuture (done)
 	ScheduleThreadPoolExecutor (done)
 	Semaphore (done)
-	SynchronousQueue
-	ThreadFactory
+	ThreadFactory  (done)
 	ThreadPoolExecutor
 
 	Runnable   (done)
