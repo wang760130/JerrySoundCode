@@ -80,6 +80,33 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		this.handler = handler;
 	}
 	
+	public void execute(Runnable command) {
+		if(command == null) {
+			throw new NullPointerException();
+		}
+		
+		if(poolSize >= corePoolSize || !addIfUnderCorePoolSize(command)) {
+			if(runState == RUNNING && workQueue.offer(command)) {
+				if(runState != RUNNING || poolSize == 0) {
+					ensureQueuedTaskHandled(command);
+				}
+			} else if(!addIfUnderCorePoolSize(command)) {
+				reject(command);
+			}
+		}
+	}
+	
+	
+	private void ensureQueuedTaskHandled(Runnable command) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private boolean addIfUnderCorePoolSize(Runnable command) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 	@Override
 	public void shutdown() {
 		// TODO Auto-generated method stub
@@ -111,12 +138,6 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		return false;
 	}
 
-	@Override
-	public void execute(Runnable command) {
-		// TODO Auto-generated method stub
-		
-	}
-	
 	public long tiggerTime(long l) {
 		// TODO Auto-generated method stub
 		return 0;
