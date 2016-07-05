@@ -9,6 +9,18 @@ public class Executors {
 	
 	public static <T> Callable<T> callable(Runnable task, T result) {
 		return null;
+	}
 	
+	public static ThreadFactory defaultThreadFactory() {
+		return new DefaultThreadFactory();
+	}
+	
+	static class DefaultThreadFactory implements ThreadFactory {
+		
+		@Override
+		public Thread newThread(Runnable r) {
+			return null;
+		}
+		
 	}
 }
