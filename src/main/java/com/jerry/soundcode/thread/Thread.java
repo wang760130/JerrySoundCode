@@ -119,6 +119,10 @@ public class Thread implements Runnable {
 		return false;
 	}
 
+	public final native boolean isAlive();
 	
+	public synchronized void start() {
+		
+	}
 
 }
