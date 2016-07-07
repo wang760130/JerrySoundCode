@@ -96,17 +96,225 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		}
 	}
 	
+	private Thread addThread(Runnable firstTask) {
+		Worker w = new Worker(firstTask);
+		Thread t = threadFactory.newThread(w);
+		boolean workerStarted = false;
+		if(t != null) {
+			if(t.isAlive()) {
+				throw new IllegalArgumentException();
+			}
+			w.thread = t;
+			workers.add(w);
+			int nt = ++ poolSize;
+			if(nt > largestPoolSize) {
+				largestPoolSize = nt;
+			}
+			
+			try {
+				t.start();
+				workerStarted = true;
+			} finally {
+				if(!workerStarted) {
+					workers.remove(w);
+				}
+			}
+		}
+		
+		return t;
+	}
+	
+	private boolean addIfUnderCorePoolSize(Runnable firstTask) {
+		Thread t = null;
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			if(poolSize < corePoolSize && runState == RUNNING) {
+				t = addThread(firstTask);
+			}
+		} finally {
+			mainLock.unlock();
+		}
+		
+		return t != null;
+	}
+	
+	private boolean addIfUnderMaximumPoolSize(Runnable firstTask) {
+		Thread t = null;
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			if(poolSize < maximumPoolSize && runState == RUNNING) {
+				t = addThread(firstTask);
+			}
+		} finally {
+			mainLock.unlock();
+		}
+		
+		return t != null;
+	}
 	
 	private void ensureQueuedTaskHandled(Runnable command) {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		
+		boolean reject = false;
+		Thread t = null;
+		
+		try {
+			int state = runState;
+			if(state != RUNNING && workQueue.remove(command)) {
+				reject = true;
+			} else if(state < STOP && poolSize < Math.max(corePoolSize, 1) && !workQueue.isEmpty()) {
+				t = addThread(null);
+			}
+					
+		} finally {
+			mainLock.unlock();
+		}
+		
+		if(reject) {
+			reject(command);
+		}
+	}
+
+	void reject(Runnable command) {
+		handler.rejectedExecution(command, this);
+	}
+	
+	private final class Worker implements Runnable {
+		
+		private final ReentrantLock runLock = new ReentrantLock();
+		
+		private Runnable firstTask;
+		
+		volatile long competedTasks;
+		
+		Thread thread;
+		
+		volatile boolean hasRun = false;
+		
+		Worker(Runnable firstTask) {
+			this.firstTask = firstTask;
+		}
+		
+		boolean isActive() {
+			return runLock.isLocked();
+		}
+		
+		void interruptIfdle() {
+			final ReentrantLock lock = this.runLock;
+			if(runLock.tryLock()) {
+				try {
+					if(hasRun && thread != Thread.currentThread()) {
+						thread.interrupt();
+					}
+				} finally {
+					runLock.unlock();
+				}
+			}
+		}
+		
+		void interruptNow() {
+			if(hasRun) {
+				thread.interrupt();
+			}
+		}
+		
+		private void runTask(Runnable task) {
+			final ReentrantLock runLock = this.runLock;
+			runLock.lock();
+			
+			try {
+				if((runState >= STOP || (Thread.interrupted() && runState >= STOP)) && hasRun) {
+					thread.interrupt();
+				}
+				
+				boolean ran = false;
+				beforeExecute(thread, task);
+				
+				try {
+					task.run();
+					ran = false;
+					afterExecute(task, null);
+					++competedTasks;
+				} catch (RuntimeException ex) {
+					if(!ran) {
+						afterExecute(task, ex);
+					}
+					throw ex;
+				}
+				
+			} finally {
+				runLock.unlock();
+			}
+		}
+		
+		@Override
+		public void run() {
+			try {
+				hasRun = true;
+				Runnable task = firstTask;
+				firstTask = null;
+				while(task != null || (task = getTask()) != null) {
+					runTask(task);
+					task = null;
+				}
+			} finally {
+				workQueue(this);
+			}
+		}
+	}
+	
+	Runnable getTask() {
+		for(;;) {
+			try {
+				int state = runState;
+				if(state > SHUTDOWN) {
+					return null;
+				}
+				
+				Runnable r;
+				if(state == SHUTDOWN) {
+					// TOTO
+//					r = workQueue.poll();
+				}
+				
+			} finally {
+				
+			}
+		}
+		
+	}
+
+	public static class AbortPolicy implements RejectedExecutionHandler {
+
+		public AbortPolicy() {}
+		
+		@Override
+		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+			
+		}
+		
+	}
+	
+	private void workQueue(Worker worker) {
 		// TODO Auto-generated method stub
 		
 	}
 
-	private boolean addIfUnderCorePoolSize(Runnable command) {
+	
+	
+	private void afterExecute(Runnable task, RuntimeException ex) {
 		// TODO Auto-generated method stub
-		return false;
+		
 	}
 
+	private void beforeExecute(Thread thread2, Runnable task) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	@Override
 	public void shutdown() {
 		// TODO Auto-generated method stub
@@ -171,124 +379,4 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		// TODO Auto-generated method stub
 		return 0;
 	}
-	
-	protected void reject(Runnable command) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	private final class Worker implements Runnable {
-		
-		private final ReentrantLock runLock = new ReentrantLock();
-		
-		private Runnable firstTask;
-		
-		volatile long competedTasks;
-		
-		Thread thread;
-		
-		volatile boolean hasRun = false;
-		
-		Worker(Runnable firstTask) {
-			this.firstTask = firstTask;
-		}
-		
-		boolean isActive() {
-			return runLock.isLocked();
-		}
-		
-		void interruptIfdle() {
-			final ReentrantLock lock = this.runLock;
-			if(runLock.tryLock()) {
-				try {
-					if(hasRun && thread != Thread.currentThread()) {
-						thread.interrupt();
-					}
-				} finally {
-					runLock.unlock();
-				}
-			}
-		}
-		
-		void interruptNow() {
-			if(hasRun) {
-				thread.interrupt();
-			}
-		}
-		
-		private void runTask(Runnable task) {
-			final ReentrantLock runLock = this.runLock;
-			runLock.lock();
-			
-			try {
-				if((runState >= STOP || (Thread.interrupted() && runState >= STOP)) && hasRun) {
-					thread.interrupt();
-				}
-				
-				boolean ran = false;
-				beforeExecute(thread, task);
-				
-				try {
-					
-				} catch (RuntimeException ex) {
-					if(!ran) {
-						afterExecute(task, ex);
-					}
-					throw ex;
-				}
-				
-			} catch(Exception e) {
-				runLock.unlock();
-			}
-		}
-		
-		Runnable getTask() {
-			
-			for(;;) {
-				try {
-					int state = runState;
-					if(state > SHUTDOWN) {
-						return null;
-					}
-					
-					Runnable r;
-					if(state == SHUTDOWN) {
-						// TOTO
-//						r = workQueue.poll();
-					}
-					
-				} finally {
-					
-				}
-			}
-			
-		}
-		
-		private void afterExecute(Runnable task, RuntimeException ex) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		private void beforeExecute(Thread thread2, Runnable task) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void run() {
-			
-		}
-	}
-	
-	public static class AbortPolicy implements RejectedExecutionHandler {
-
-		public AbortPolicy() {}
-		
-		@Override
-		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-			
-		}
-		
-	}
-	
 }
