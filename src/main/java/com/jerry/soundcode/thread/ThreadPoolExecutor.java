@@ -1,12 +1,16 @@
 package com.jerry.soundcode.thread;
 
+import java.util.ConcurrentModificationException;
 import java.util.concurrent.TimeUnit;
 
 import com.jerry.soundcode.concurrent.collection.BlockingQueue;
 import com.jerry.soundcode.concurrent.collection.DelayQueue;
 import com.jerry.soundcode.concurrent.locks.Condition;
 import com.jerry.soundcode.concurrent.locks.ReentrantLock;
+import com.jerry.soundcode.list.ArrayList;
 import com.jerry.soundcode.list.Collection;
+import com.jerry.soundcode.list.Iterable;
+import com.jerry.soundcode.list.Iterator;
 import com.jerry.soundcode.list.List;
 import com.jerry.soundcode.set.HashSet;
 
@@ -193,6 +197,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		Thread thread;
 		
 		volatile boolean hasRun = false;
+
+		public long completedTasks;
 		
 		Worker(Runnable firstTask) {
 			this.firstTask = firstTask;
@@ -276,14 +282,195 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 				
 				Runnable r;
 				if(state == SHUTDOWN) {
-					// TOTO
-//					r = workQueue.poll();
+					r = workQueue.poll();
+				} else if(poolSize > corePoolSize || allowCoreThreadTimeOut) {
+					r = workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS);
+				} else {
+					r = workQueue.take();
+				} 
+				
+				if(r != null) {
+					return r;
 				}
 				
-			} finally {
+				if(workerCanExit()) {
+					if(runState >= SHUTDOWN) {
+						interruptIdleWorders();
+					}
+					return null;
+				}
+				
+			} catch (InterruptedException e) {
+			}
+		}
+		
+	}
+
+	private boolean workerCanExit() {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		boolean canExit;
+		try {
+			canExit = runState >= STOP || workQueue.isEmpty() || (allowCoreThreadTimeOut && poolSize > Math.max(1,  corePoolSize));
+		} finally {
+			mainLock.unlock();
+		}
+		return canExit;
+	}
+	
+	private void interruptIdleWorders() {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+//			for(Worker w : workers) {
+//				w.interruptIfdle();
+//			}
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	void workerDone(Worker w) {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			completedTaskCount += w.completedTasks;
+			workers.remove(w);
+			if(--poolSize == 0) {
+				tryTermainte();
+			}
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+
+	private void tryTermainte() {
+		if(poolSize == 0) {
+			int state = runState;
+			if(state < STOP && !workQueue.isEmpty()) {
+				state = RUNNING;
+			}
+			
+			if(state == STOP || state == SHUTDOWN) {
+				runState = TERMINATED;
+				termination.signalAll();
+				terminated();
+			}
+		}
+	}
+	
+	@Override
+	public void shutdown() {
+		SecurityManager security = System.getSecurityManager();
+		if(security != null) {
+			security.checkPermission(shutdownPerm);
+		}
+		
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		
+		try {
+			if(security != null) {
+//				for(Worker w : workers) {
+//					security.checkAccess(w.thread);
+//				}
+				
+				int state = runState;
+				if(state <  SHUTDOWN) {
+					runState = SHUTDOWN;
+				}
+				
+				try {
+//					for(Worker w : workers) {
+//						w.interruptIfdle();
+//					}
+				} catch (SecurityException e) {
+					runState = state;
+					throw e;
+				}
+			}
+			
+			tryTermainte();
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	@Override
+	public List<Runnable> shutdownNow() {
+		SecurityManager security = System.getSecurityManager();
+		if(security != null) {
+			security.checkPermission(shutdownPerm);
+		}
+		
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		
+		try {
+			if(security != null) {
+//				for(Worker w : workers) {
+//					security.checkAccess(w.thread);
+//				}
+					
+				int state = runState;
+				if(state < STOP) {
+					runState = STOP;
+				}
+				
+				try {
+//					for(Worker w : workers) {
+//						w.interruptNow();
+//					}
+				} catch (SecurityException e) {
+					runState = state;
+					throw e;
+				}
+			}
+			
+			List<Runnable> tasks = drainQueue();
+			tryTermainte();
+			return tasks;
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	
+	private List<Runnable> drainQueue() {
+		List<Runnable> taskList = new ArrayList<Runnable>();
+		workQueue.drainTo(taskList);
+		
+		while(!workQueue.isEmpty()) {
+			Iterator<Runnable> it = workQueue.iterator();
+			try {
+				if(it.hasNext()) {
+					Runnable r = it.next();
+					if(workQueue.remove(r)) {
+						taskList.add(r);
+					}
+				}
+			} catch (ConcurrentModificationException ignore) {
 				
 			}
 		}
+		
+		return taskList;
+	}
+	
+	@Override
+	public boolean isShutdown() {
+		return runState != RUNNING;
+	}
+	
+	boolean isStopped() {
+		return runState == STOP;
+	}
+
+	
+	
+	private void terminated() {
+		// TODO Auto-generated method stub
 		
 	}
 
@@ -315,23 +502,6 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		
 	}
 	
-	@Override
-	public void shutdown() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public List<Runnable> shutdownNow() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean isShutdown() {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public boolean isTerminated() {
@@ -349,11 +519,6 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 	public long tiggerTime(long l) {
 		// TODO Auto-generated method stub
 		return 0;
-	}
-
-	public boolean isStopped() {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 	public BlockingQueue<Runnable> getQueue() {
