@@ -1,7 +1,6 @@
 package com.jerry.soundcode.thread;
 
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -116,7 +115,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
 			}
 			
 			if(exception != null) {
-//				throw new ExecutionException(exception);
+				throw new ExecutionException(exception);
 			}
 			return result;
 		}
@@ -126,8 +125,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 throw new TimeoutException();
             if (getState() == CANCELLED)
                 throw new CancellationException();
-//            if (exception != null)
-//                throw new ExecutionException(exception);
+            if (exception != null)
+                throw new ExecutionException(exception);
             return result;
         }
 		
