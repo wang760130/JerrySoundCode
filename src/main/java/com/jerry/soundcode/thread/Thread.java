@@ -125,4 +125,14 @@ public class Thread implements Runnable {
 		
 	}
 
+	public ClassLoader getContextClassLoader() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public void setContextClassLoader(ClassLoader ccl) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
