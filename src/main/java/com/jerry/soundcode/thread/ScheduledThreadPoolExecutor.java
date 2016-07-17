@@ -161,7 +161,7 @@ public class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements S
     	return task;
     }
     
-    @SuppressWarnings("rawtypes")
+	@SuppressWarnings("unchecked")
 	public ScheduledThreadPoolExecutor(int corePoolSize) {
     	super(corePoolSize, Integer.MAX_VALUE, 0, TimeUnit.NANOSECONDS, new DelayQueue());
     }
