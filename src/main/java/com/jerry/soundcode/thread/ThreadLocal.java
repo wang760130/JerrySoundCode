@@ -2,7 +2,6 @@ package com.jerry.soundcode.thread;
 
 import com.jerry.soundcode.concurrent.atomic.AtomicInteger;
 import com.jerry.soundcode.ref.WeakReference;
-import com.jerry.soundcode.thread.*;
 
 public class ThreadLocal<T> {
 	
