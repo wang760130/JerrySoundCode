@@ -1,8 +1,5 @@
 package com.jerry.soundcode.thread;
 
-import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.jerry.soundcode.concurrent.collection.BlockingQueue;
@@ -13,7 +10,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 	private final Executor executor;
 	private final AbstractExecutorService aes;
 	private final BlockingQueue<Future<V>> competionQueue;
-//	
+
 	private class QueueingFuture extends FutureTask<Void> {
 		public QueueingFuture(RunnableFuture<V> task) {
 			super(task, null);
@@ -27,20 +24,18 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 	
 	private RunnableFuture<V> newTaskFor(Callable<V> task) {
 		if(aes == null) {
-			return new FutureTask<V> ((java.util.concurrent.Callable<V>) task); 
-		} /*else {
-			return aes.newTaskFor((java.util.concurrent.Callable<T>) task);
-		}*/
-		return null;
+			return new FutureTask<V> (task); 
+		}else {
+			return aes.newTaskFor(task);
+		}
 	}
 	
 	private RunnableFuture<V> newTaskFor(Runnable task, V result) {
 		if(aes == null) {
-			return new FutureTask<V>((java.lang.Runnable) task, result);
-		} /*else {
+			return new FutureTask<V>(task, result);
+		} else {
 			return aes.newTaskFor(task, result);
-		}*/
-		return null;
+		}
 	}
 	
 	public ExecutorCompletionService(Executor executor) {
@@ -69,8 +64,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 		}
 		RunnableFuture<V> f = newTaskFor(task);
 		executor.execute((Runnable) new QueueingFuture(f));
-//		return f;
-		return null;
+		return f;
 	}
 
 	@Override
@@ -80,8 +74,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 		}
 		RunnableFuture<V> f = newTaskFor(task, result);
 		executor.execute((Runnable) new QueueingFuture(f));
-//		return f;
-		return null;
+		return f;
 	}
 
 	@Override
