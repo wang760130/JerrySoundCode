@@ -1,6 +1,5 @@
 package com.jerry.soundcode.thread;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -109,11 +108,10 @@ public abstract class AbstractExecutorService implements ExecutorService {
 				}
 			}
 			
-//			if(ee == null) {
-//				ee = new ExecutionException();
-//			}
-//			throw ee;
-			return null;
+			if(ee == null) {
+				ee = new ExecutionException();
+			}
+			throw ee;
 		} finally {
 //			for(Future<T> f : futures) {
 //				f.cancel(true);
