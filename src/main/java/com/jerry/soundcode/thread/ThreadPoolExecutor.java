@@ -1,6 +1,7 @@
 package com.jerry.soundcode.thread;
 
 import java.util.ConcurrentModificationException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.jerry.soundcode.concurrent.collection.BlockingQueue;
@@ -267,7 +268,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 					task = null;
 				}
 			} finally {
-				workQueue(this);
+				workerDone(this);
 			}
 		}
 	}
@@ -467,81 +468,311 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		return runState == STOP;
 	}
 
-	
-	
-	private void terminated() {
-		// TODO Auto-generated method stub
-		
+	public boolean isTerminating() {
+		int state = runState;
+		return state == SHUTDOWN || state == STOP;
 	}
+	
+	@Override
+	public boolean isTerminated() {
+		return runState == TERMINATED;
+	}
+	
+	@Override
+	public boolean awaitTermination(long timeot, TimeUnit unit) throws InterruptedException {
+		long nanos = unit.toNanos(timeot);
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			for(;;) {
+				if(runState == TERMINATED) {
+					return true;
+				}
+				if(nanos <= 0) {
+					return false;
+				}
+				nanos = termination.awaitNanos(nanos);
+			}
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	@Override
+	protected void finalize() {
+		shutdown();
+	}
+	
+	public void setThreadFactory(ThreadFactory threadFactory) {
+		if(threadFactory == null) {
+			throw new NullPointerException();
+		}
+		this.threadFactory = threadFactory;
+	}
+	
+	public ThreadFactory getThreadFactory() {
+		return threadFactory;
+	}
+	
+	public void setRejectedExecutionHandler(RejectedExecutionHandler handler) {
+		if(handler == null) {
+			throw new NullPointerException();
+		}
+		this.handler = handler;
+	}
+	
+	public RejectedExecutionHandler getRejectedExecutionHandler() {
+		return handler;
+	}
+	
+	public void setCorePoolSize(int corePoolSize) {
+		if(corePoolSize < 0) {
+			throw new IllegalArgumentException();
+		}
+		
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		
+		try {
+			int extra = this.corePoolSize - corePoolSize;
+			this.corePoolSize = corePoolSize;
+			if(extra < 0) {
+				int n = workQueue.size();
+				while(extra ++ < 0 && n-- > 0 && poolSize < corePoolSize) {
+					Thread t = addThread(null);
+					if(t == null) {
+						break;
+					}
+				}
+			} else if(extra > 0 && poolSize > corePoolSize) {
+				try {
+					Iterator<Worker> it = workers.iterator();
+					while(it.hasNext() && extra-- > 0 && poolSize > corePoolSize && workQueue.remainingCapacity() == 0) {
+						it.next().interruptIfdle();
+					}
+				} catch(SecurityException ignore) {
+					
+				}
+			}
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	public int getCorePoolSize() {
+		return corePoolSize;
+	}
+	
+	public boolean prestartCoreThread() {
+		return addIfUnderCorePoolSize(null);
+	}
+	
+	public int prestartAllCoreThreads() {
+		int n = 0;
+		while(addIfUnderCorePoolSize(null)) {
+			++n;
+		}
+		return n;
+	}
+	
+	public boolean allowsCoreThreadTimeOut() {
+		return allowCoreThreadTimeOut;
+	}
+	
+	public void allowCoreThreadTimeOut(boolean value) {
+		if(value && keepAliveTime <= 0) {
+			throw new IllegalArgumentException("Core threads must have nonzero keep alive times");
+		}
+		
+		allowCoreThreadTimeOut = value;
+	}
+	
+	public void setMaximumPoolSize(int maximumPoolSize) {
+		if(maximumPoolSize <= 0 || maximumPoolSize < corePoolSize) {
+			throw new IllegalArgumentException();
+		}
+		
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		
+		try {
+			int extra = this.maximumPoolSize - maximumPoolSize;
+			this.maximumPoolSize = maximumPoolSize;
+			if(extra > 0 && poolSize > maximumPoolSize) {
+				try {
+					Iterator<Worker> it = workers.iterator();
+					while(it.hasNext() && extra > 0 && poolSize > maximumPoolSize) {
+						it.next().interruptIfdle();
+						--extra;
+					}
+				} catch(SecurityException ignore) {
+					
+				}
+			}
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	public int getMaximumPoolSize() {
+		return maximumPoolSize;
+	}
+	
+	public void setKeepAliveTime(long time, TimeUnit unit) {
+		if(time < 0) {
+			throw new IllegalArgumentException();
+		}
+		
+		if(time == 0 && allowCoreThreadTimeOut) {
+			throw new IllegalArgumentException("Core threads must have nonzero keep alive times");
+		}
+		
+		this.keepAliveTime = unit.toNanos(time);
+	}
+	
+	public long getKeepAliveTime(TimeUnit unit) {
+		return unit.convert(keepAliveTime, TimeUnit.NANOSECONDS);
+	}
+	
+	public BlockingQueue<Runnable> getQueue() {
+		return workQueue;
+	}
+	
+	public boolean remove(Runnable task) {
+		return getQueue().remove(task);
+	}
+	
+	public void purge() {
+		try {
+			Iterator<Runnable> it = getQueue().iterator();
+			while(it.hasNext()) {
+				Runnable r = it.next();
+				if(r instanceof Future<?>) {
+					Future<?> c = (Future<?>) r;
+					if(c.isCancelled()) {
+						it.remove();
+					}
+				}
+			}
+		} catch(ConcurrentModificationException e) {
+			return;
+		}
+	}
+	
+	public int getPoolSize() {
+		return poolSize;
+	}
+	
+	public int getActiveCount() {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		
+		try {
+			int n = 0;
+//			for(Worker w : workers) {
+//				if(w.isActive()) {
+//					++n;
+//				}
+//			}
+			return n;
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	public int getLargestPoolSize() {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			return largestPoolSize;
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	public long getTaskCount() {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			long n = completedTaskCount;
+			/*for(Worker w : workers) {
+				n += w.competedTasks;
+				if(w.isActive()) {
+					++n;
+				}
+			}*/
+			return n + workQueue.size();
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	public long getCompletedTaskCount() {
+		final ReentrantLock mainLock = this.mainLock;
+		mainLock.lock();
+		try {
+			long n = completedTaskCount;
+			/*for(Worker w : workers) {
+				n += w.completedTasks;
+			}*/
+			return n;
+		} finally {
+			mainLock.unlock();
+		}
+	}
+	
+	protected void beforeExecute(Thread t, Runnable r) {}
+	
+	protected void afterExecute(Runnable task, RuntimeException ex) { }
+	
+	protected void terminated() { }
 
+	public static class CallerRunsPolicy implements RejectedExecutionHandler {
+
+		public CallerRunsPolicy() {}
+		
+		@Override
+		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+			if(!executor.isShutdown()) {
+				r.run();
+			}
+		}
+	}
+	
 	public static class AbortPolicy implements RejectedExecutionHandler {
 
 		public AbortPolicy() {}
 		
 		@Override
 		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-			
+			throw new RejectedExecutionException();
 		}
 		
 	}
 	
-	private void workQueue(Worker worker) {
-		// TODO Auto-generated method stub
+	public static class DiscardPolicy implements RejectedExecutionHandler {
+
+		public DiscardPolicy() {}
 		
-	}
-
+		@Override
+		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
 	
-	
-	private void afterExecute(Runnable task, RuntimeException ex) {
-		// TODO Auto-generated method stub
+		}
 		
-	}
-
-	private void beforeExecute(Thread thread2, Runnable task) {
-		// TODO Auto-generated method stub
+	}	
+	
+	public static class DiscardOldestPolicy implements RejectedExecutionHandler {
 		
-	}
-	
-
-	@Override
-	public boolean isTerminated() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean awaitTermination(long timeout, TimeUnit unit)
-			throws InterruptedException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public long tiggerTime(long l) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public BlockingQueue<Runnable> getQueue() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	public void purge() {
+		public DiscardOldestPolicy() {}
 		
-	}
-	
-	protected void prestartCoreThread() {
-		// TODO Auto-generated method stub
+		@Override
+		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+			if(!executor.isShutdown()) {
+				executor.getQueue().poll();
+				executor.execute(r);
+			}
+		}
 		
-	}
+	}	
 	
-	protected int getPoolSize() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	protected int getCorePoolSize() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 }
