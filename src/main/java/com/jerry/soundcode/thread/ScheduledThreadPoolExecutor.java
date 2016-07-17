@@ -96,7 +96,7 @@ public class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements S
 				if(p > 0) {
 					time += p;
 				} else {
-					time = tiggerTime(-p);
+					time = triggerTime(-p);
 				}
 				ScheduledThreadPoolExecutor.super.getQueue().add(this);
 			}
