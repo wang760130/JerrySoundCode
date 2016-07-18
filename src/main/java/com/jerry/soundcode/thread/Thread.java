@@ -1,7 +1,12 @@
 package com.jerry.soundcode.thread;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.security.AccessControlContext;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
+
+import com.jerry.soundcode.map.HashMap;
+import com.jerry.soundcode.map.Map;
 
 public class Thread implements Runnable {
 	
@@ -212,7 +217,7 @@ public class Thread implements Runnable {
 //		group.add(this);
 		start0();
 		if(stopBeforeStart) {
-			start0(throwableFromStop);
+			start0();
 		}
 	}
 	
@@ -464,61 +469,156 @@ public class Thread implements Runnable {
 		if(this != Thread.currentThread()) {
 			
 			SecurityManager security = System.getSecurityManager();
-			// TODO
+			if(security != null) {
+//				security.checkPermission(SecurityConstants.GET_STACK_TRACE_PERMISSION);
+			} 
 			
+			if(!isAlive()) {
+				return EMPTY_STACK_TRACE;
+			}
+			
+			StackTraceElement[][] stackTraceArray = dumpThreads(new Thread[] {this});
+			StackTraceElement[] stackTrace = stackTraceArray[0];
+			if(stackTrace == null) {
+				stackTrace = EMPTY_STACK_TRACE;
+			}
+			return stackTrace;
 		} else {
 			return (new Exception()).getStackTrace();
 		}
-		
-		return null;
 	}
 	
-	private void setPriority0(int i) {
-		// TODO Auto-generated method stub
+	public static Map<Thread, StackTraceElement[]> getAllStackTraces() {
+		SecurityManager security = System.getSecurityManager();
+		if(security != null) {
+//			security.checkPermission(SecurityConstants.GET_STACK_TRACE_PERMISSION);
+//			security.checkPermission(SecurityConstants.MODIFY_THREADGROUP_PERMISSION);
+		}
 		
+		Thread[] threads = getThreads();
+		StackTraceElement[][] traces = dumpThreads(threads);
+		Map<Thread, StackTraceElement[]> m = new HashMap<Thread, StackTraceElement[]> (threads.length);
+		for(int i = 0; i < threads.length; i++) {
+			StackTraceElement[] stackTrace = traces[i];
+			if(stackTrace != null) {
+				m.put(threads[i], stackTrace);
+			}
+		}
+		return m;
 	}
-
-	private void resume0() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void suspend0() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void interrupt0() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void stop0(Throwable th) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private native void start0(Throwable throwableFromStop2);
-
 	
-	private static final RuntimePermission SUBCLASS_IMPLEMENTATION_PERMISSION =
-             new RuntimePermission("enableContextClassLoaderOverride");
+	private static final RuntimePermission SUBCLASS_IMPLEMENTATION_PERMISSION =  new RuntimePermission("enableContextClassLoaderOverride");
 	 
-	private boolean isCCLOverridden(Class<? extends Thread> class1) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-
-	public long getId() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public interface UncaughtExceptionHandler {
+	private static final sun.misc.SoftCache subclassAudits = new sun.misc.SoftCache(10);
+	
+	private static boolean isCCLOverridden(Class cl) {
+		if(cl == Thread.class) {
+			return false;
+		}
 		
+		Boolean result = null;
+		synchronized(subclassAudits) {
+			result = (Boolean) subclassAudits.get(cl);
+			if(result == null) {
+				result = new Boolean(auditSubclass(cl));
+				subclassAudits.put(cl, result);
+			}
+		}
+		return result.booleanValue();
 	}
 	
-    private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private static boolean auditSubclass(final Class subcl) {
+		Boolean result = (Boolean) AccessController.doPrivileged(
+			new PrivilegedAction() {
 
+				@Override
+				public Object run() {
+					for(Class cl = subcl; cl != Thread.class; cl = cl.getSuperclass()) {
+						try {
+							cl.getDeclaredMethod("getContextClassLoader", new Class[0]);
+							return Boolean.TRUE;
+						} catch (NoSuchMethodException e) {
+						}
+						
+						Class[] params = {ClassLoader.class};
+						try {
+							cl.getDeclaredMethod("setContextClassLoader", params);
+							return Boolean.TRUE;
+						} catch (NoSuchMethodException e) {
+						}
+					}
+					return Boolean.FALSE;
+				}
+				
+			}
+		);
+		return result.booleanValue();
+	}
+
+	private native static StackTraceElement[][] dumpThreads(Thread[] threads) ;
+	private native static Thread[] getThreads();
+	
+	public long getId() {
+		return tid;
+	}
+	
+	public enum State {
+		NEW,
+		
+		RUNNABLE,
+		
+		BLOCKED,
+		
+		WAITING,
+		
+		TIMED_WAITING,
+		
+		TERMINATED;
+	}
+	
+	public java.lang.Thread.State getState() {
+		return sun.misc.VM.toThreadState(threadStatus);
+	}
+	
+	public interface UncaughtExceptionHander {
+		void uncaughtException(Thread t, Throwable e);
+	}
+	
+	private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
+	
+	private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
+	
+	public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler eh) {
+		SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+        	sm.checkPermission(new RuntimePermission("setDefaultUncaughtExceptionHandler"));
+        }
+        defaultUncaughtExceptionHandler = eh;
+     }
+	
+	public static UncaughtExceptionHandler getDefaultUncaughtExceptionHandler(){
+        return defaultUncaughtExceptionHandler;
+    }
+	
+	public UncaughtExceptionHandler getUncaughtExceptionHandler() { 
+        return (UncaughtExceptionHandler) (uncaughtExceptionHandler != null ?
+            uncaughtExceptionHandler : group);
+    }
+	
+	public void setUncaughtExceptionHandler(UncaughtExceptionHandler eh) { 
+        checkAccess();
+        uncaughtExceptionHandler = eh;
+    }
+	
+	private void dispatchUncaughtException(Throwable e) {
+//        getUncaughtExceptionHandler().uncaughtException(this, e);
+    }
+	
+	private native void setPriority0(int newPriority);
+    private native void stop0(Object o);
+    private native void suspend0();
+    private native void resume0();
+    private native void interrupt0();
+	
 }
