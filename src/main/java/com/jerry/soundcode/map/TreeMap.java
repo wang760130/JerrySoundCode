@@ -18,32 +18,67 @@ import com.jerry.soundcode.set.Set;
 import com.jerry.soundcode.set.SortedSet;
 import com.jerry.soundcode.set.TreeSet;
 
+/**
+ * TreeMap特点 
+ * 1.利用红黑树存储结点 
+ * 2.插入、删除、查找时间复杂度都是O(logn) 
+ * 3.没有实现同步方法线程不安全 ，效率较高 
+ * 4.结点可以按照排序输出，默认排序是key值，可以自定义排序方法
+ */
 public class TreeMap<K, V> extends AbstractMap<K, V>
 	implements NavigableMap<K, V>, Cloneable, Serializable {
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * 自定义比较器，默认null，表示用key自然排序
+	 */
 	private final Comparator<? super K> comparator;
 	
+	/**
+	 * 根结点
+	 */
 	private transient Entry<K, V> root = null;
 	
+	/**
+	 * 结点个数
+	 */
 	private transient int size = 0;
 	
+	/**
+	 * 修改次数
+	 */
 	private transient int modCount = 0;
 	
+	/**
+	 * 创建一个空的构造函数
+	 */
 	public TreeMap() {
 		comparator = null;
 	}
 	
+	/**
+	 * 创建一个比较器是 Comparator的构造函数
+	 * @param comparator
+	 */
 	public TreeMap(Comparator<? super K> comparator) {
 		this.comparator = comparator;
 	}
 	
+	/**
+	 * map m中元素加入到当前map中
+     * This method runs in n*log(n) time.
+	 * @param map
+	 */
 	public TreeMap(Map<? extends K, ? extends V> map) {
 		comparator = null;
 		putAll(map);
 	}
 	
+	/**
+	 * SortedMap m中元素加入到当前map中
+	 * @param map
+	 */
 	public TreeMap(SortedMap<K, ? extends V> map) {
 		comparator = map.comparator();
 		try {
@@ -159,6 +194,13 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	/**
+	 * 寻找大于等于 key
+     * 若都大于 key，返回最小的结点
+     * 若都小于key， 返回最大的结点
+	 * @param key
+	 * @return
+	 */
 	final Entry<K, V> getCeilingEntry(K key) {
 		Entry<K, V> p = root;
 		while(p != null) {
@@ -189,6 +231,13 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	/**
+	 * 获取小于等于key的结点
+     * 若都小于key，返回最大的结点
+     * 若都大于key，返回最小的结点
+	 * @param key
+	 * @return
+	 */
 	final Entry<K, V> getFloorEntry(K key) {
 		Entry<K, V> p = root;
 		while(p != null) {
@@ -219,6 +268,13 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	/**
+	 * 获取大于key的结点
+     * 若都大于key，返回最小值
+     * 若都小于key，返回最大值
+	 * @param key
+	 * @return
+	 */
 	final Entry<K, V> getHigherEntry(K key) {
 		Entry<K, V> p = root;
 		while(p != null) {
@@ -246,6 +302,13 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return null;
 	}
 	
+	/**
+	 * 获取小于key的结点
+     * 若都小于key，返回最大结点
+     * 若都大于key，返回最小结点
+	 * @param key
+	 * @return
+	 */
 	final Entry<K, V> getLowerEntry(K key) {
 		Entry<K, V> p = root;
 		while(p != null) {
@@ -410,6 +473,11 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return exportEntry(getLowerEntry(key));
 	}
 
+	/**
+	 * 获取小于key的结点 若都小于key，返回最大结点 若都大于key，返回最小结点
+	 * @param key
+	 * @return
+	 */
 	@Override
 	public K lowerKey(K key) {
 		return keyOrNull(getLowerEntry(key));
@@ -420,6 +488,11 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return exportEntry(getFloorEntry(key));
 	}
 	
+	/**
+	 * 获取小于等于key的结点 若都小于key，返回最大的结点 若都大于key，返回最小的结点
+	 * @param key
+	 * @return
+	 */
 	@Override
 	public K floorKey(K key) {
 		return keyOrNull(getFloorEntry(key));
@@ -440,6 +513,11 @@ public class TreeMap<K, V> extends AbstractMap<K, V>
 		return exportEntry(getHigherEntry(key));
 	}
 
+	/**
+	 * 获取大于key的结点 若都大于key，返回最小值 若都小于key，返回最大值
+	 * @param key
+	 * @return
+	 */
 	@Override
 	public K higherKey(K key) {
 		return keyOrNull(getHigherEntry(key));
