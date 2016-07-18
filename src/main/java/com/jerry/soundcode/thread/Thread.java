@@ -459,6 +459,19 @@ public class Thread implements Runnable {
 	public static native boolean holdsLock(Object obj) ;
 	
 	private static final StackTraceElement[] EMPTY_STACK_TRACE = new StackTraceElement[0];	
+
+	public StackTraceElement[] getStackTrace() {
+		if(this != Thread.currentThread()) {
+			
+			SecurityManager security = System.getSecurityManager();
+			// TODO
+			
+		} else {
+			return (new Exception()).getStackTrace();
+		}
+		
+		return null;
+	}
 	
 	private void setPriority0(int i) {
 		// TODO Auto-generated method stub
