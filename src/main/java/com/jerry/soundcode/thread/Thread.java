@@ -3,8 +3,6 @@ package com.jerry.soundcode.thread;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 
-import sun.security.util.SecurityConstants;
-
 public class Thread implements Runnable {
 	
 	private static native void registerNatives();
