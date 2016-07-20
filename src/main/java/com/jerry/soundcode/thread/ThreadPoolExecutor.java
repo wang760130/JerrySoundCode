@@ -141,6 +141,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 		return t != null;
 	}
 	
+	@SuppressWarnings("unused")
 	private boolean addIfUnderMaximumPoolSize(Runnable firstTask) {
 		Thread t = null;
 		final ReentrantLock mainLock = this.mainLock;
