@@ -1,5 +1,6 @@
 package com.jerry.soundcode.thread;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -113,9 +114,9 @@ public abstract class AbstractExecutorService implements ExecutorService {
 			}
 			throw ee;
 		} finally {
-//			for(Future<T> f : futures) {
-//				f.cancel(true);
-//			}
+			for(int i = 0; i < futures.size(); i++) {
+				futures.get(i).cancel(true);
+			}
 		}
 	}
 	
@@ -149,22 +150,26 @@ public abstract class AbstractExecutorService implements ExecutorService {
                 futures.add(f);
                 execute(f);
             }
-            for (Future<T> f : futures) {
-                if (!f.isDone()) {
+            */
+            
+			for(int i = 0; i < futures.size(); i++) {
+				Future<T> f = futures.get(i);
+				if (!f.isDone()) {
                     try {
                         f.get();
                     } catch (CancellationException ignore) {
                     } catch (ExecutionException ignore) {
                     }
                 }
-            }*/
+			}
             done = true;
             return futures;	
 		} finally {
 			if(!done) {
-//				for(Future<T> f : futures) {
-//					f.cancel(true);
-//				}
+				for(int i = 0; i < futures.size(); i++) {
+					Future<T> f = futures.get(i);
+					f.cancel(true);
+				}
 			}
 		}
 	}
@@ -195,7 +200,8 @@ public abstract class AbstractExecutorService implements ExecutorService {
                     return futures;
             }
 
-            /*for (Future<T> f : futures) {
+            for(int i = 0; i < futures.size(); i++) {
+				Future<T> f = futures.get(i);
                 if (!f.isDone()) {
                     if (nanos <= 0)
                         return futures;
@@ -210,14 +216,15 @@ public abstract class AbstractExecutorService implements ExecutorService {
                     nanos -= now - lastTime;
                     lastTime = now;
                 }
-            }*/
+            }
             done = true;
             return futures;
 		} finally {
 			if(!done) {
-				/*for(Futrue<T> f : futures) {
+				 for(int i = 0; i < futures.size(); i++) {
+					Future<T> f = futures.get(i);
 					f.cancel(true);
-				}*/
+				}
 			}
 		}
 	}
