@@ -11,6 +11,9 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
 
+/**
+ * 多路复用类，独立的线程，负责轮询多路复用器Selctor，可以处理多个客户达un的并发接入
+ */
 public class MultiplexerTimeServer implements Runnable {
 	
 	Selector selector;
@@ -24,10 +27,19 @@ public class MultiplexerTimeServer implements Runnable {
 	 */
 	public MultiplexerTimeServer(int port) {
 		try {
-			selector = Selector.open();
+			// 用户监听客户端的连接，是所有客户端连接的父管道
 			serverChannel = ServerSocketChannel.open();
-			serverChannel.configureBlocking(false);
+			
+			// 绑定监听端口
 			serverChannel.socket().bind(new InetSocketAddress(port), 1024);
+			
+			// 设置为非阻塞模式
+			serverChannel.configureBlocking(false);
+			
+			// 创建Reactor线程
+			selector = Selector.open();
+			
+			// 将ServerSocketChannel注册到Reactor线程的多路复用器Seector上，监听ACCEPT事件
 			serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 			System.out.println("The time server is start in port :" + port);
 		} catch (IOException e) {
@@ -42,6 +54,7 @@ public class MultiplexerTimeServer implements Runnable {
 		while(!stop) {
 			
 			try {
+				// 多路复用器在线程run方法的无限循环体内轮询准备就绪的Key
 				selector.select(1000);
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				Iterator<SelectionKey> it = selectedKeys.iterator();
@@ -82,8 +95,11 @@ public class MultiplexerTimeServer implements Runnable {
 			if(key.isAcceptable()) {
 				// Accept the new connection
 				ServerSocketChannel serverChannnel = (ServerSocketChannel) key.channel();
+				// 多路复用器监听到有新的客户端接入，处理新的接入请求，完成TCP三次握手，建立物理链路
 				SocketChannel socketChannel = serverChannnel.accept();
+				// 设置客户端链路为非阻塞模式
 				socketChannel.configureBlocking(false);
+				// 将新的接入的客户端连接注册到Reactor线程的多路复用器上，监听读操作，用来读取客户端发送的网络信息
 				socketChannel.register(selector, SelectionKey.OP_READ);
 			}
 			
@@ -91,8 +107,10 @@ public class MultiplexerTimeServer implements Runnable {
 				// Read the data
 				SocketChannel socketChannel = (SocketChannel) key.channel();
 				ByteBuffer buffer = ByteBuffer.allocate(1024);
+				// 异步读取客户端请求信息到缓冲区
 				int readBytes = socketChannel.read(buffer);
 				if(readBytes > 0) {
+					// 返回值大于0，读到了字节，对字节进行编解码
 					buffer.flip();
 					byte[] bytes = new byte[buffer.remaining()];
 					buffer.get(bytes);
@@ -100,9 +118,12 @@ public class MultiplexerTimeServer implements Runnable {
 					System.out.println("The time server receive order : " + body);
 					this.doWrite(socketChannel, new Date(System.currentTimeMillis()).toString());
 				} else if(readBytes < 0) {
+					// 链路已经关闭，需要关闭SocketChannel，释放资源
 					key.cancel();
 					socketChannel.close();
-				} 
+				}  else if(readBytes == 0) {
+					// 没有读取到字节，属于正常场景
+				}
 			}
 		}
 	}
@@ -112,7 +133,9 @@ public class MultiplexerTimeServer implements Runnable {
 			byte[] bytes = response.getBytes();
 			ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
 			buffer.put(bytes);
+			// 将缓存区当前的limit设置为position，position设置为0，用于后续对缓存区的读取操作。	
 			buffer.flip();
+			// 将消息异步发送给客户端
 			channel.write(buffer);
 		}
 	}
