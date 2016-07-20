@@ -23,6 +23,7 @@ public class ThreadLocal<T> {
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	public T get() {
 		Thread t = Thread.currentThread();
 		ThreadLocalMap map = getMap(t);
