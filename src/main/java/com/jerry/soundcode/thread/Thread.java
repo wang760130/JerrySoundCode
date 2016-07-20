@@ -509,8 +509,10 @@ public class Thread implements Runnable {
 	
 	private static final RuntimePermission SUBCLASS_IMPLEMENTATION_PERMISSION =  new RuntimePermission("enableContextClassLoaderOverride");
 	 
+	@SuppressWarnings("restriction")
 	private static final sun.misc.SoftCache subclassAudits = new sun.misc.SoftCache(10);
 	
+	@SuppressWarnings({ "rawtypes", "restriction" })
 	private static boolean isCCLOverridden(Class cl) {
 		if(cl == Thread.class) {
 			return false;
@@ -577,6 +579,7 @@ public class Thread implements Runnable {
 		TERMINATED;
 	}
 	
+	@SuppressWarnings("restriction")
 	public java.lang.Thread.State getState() {
 		return sun.misc.VM.toThreadState(threadStatus);
 	}
