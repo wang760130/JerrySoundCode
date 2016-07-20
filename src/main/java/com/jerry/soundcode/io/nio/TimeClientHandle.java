@@ -44,6 +44,7 @@ public class TimeClientHandle implements Runnable {
 		
 		while(!stop) {
 			try {
+				// 多路复用器在线程run方法的无限循环体内轮询准备就绪的Key
 				selector.select(1000);
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				Iterator<SelectionKey> it = selectedKeys.iterator();
@@ -86,7 +87,11 @@ public class TimeClientHandle implements Runnable {
 			// 判断是否连接成功
 			SocketChannel socketChannel = (SocketChannel) key.channel();
 			if(key.isConnectable()) {
+				// 连接状态，服务端已经返回ACK应答消息
 				if(socketChannel.finishConnect()) {
+					// 客户端连接成功
+					
+					// 将SocketChannel注册到多路复用器上
 					socketChannel.register(selector, SelectionKey.OP_READ);
 					doWrite(socketChannel);
 				} else {
@@ -117,10 +122,14 @@ public class TimeClientHandle implements Runnable {
 	}
 	
 	private void doConnect() throws IOException {
-		if(socketChannel.connect(new InetSocketAddress(host, port))) {
+		// 异步连接服务器
+		boolean connected = socketChannel.connect(new InetSocketAddress(host, port));
+		if(connected) {
+			// 注册读状态位到多路复用器中
 			socketChannel.register(selector, SelectionKey.OP_READ);
 			this.doWrite(socketChannel);
 		} else {
+			// 服务器没有返回TCP握手应答消息，向Reactor线程的多路复用器注册OP_CONNECT状态位，监听服务端的TCP ACK应答
 			socketChannel.register(selector, SelectionKey.OP_CONNECT);
 		}
 	}
@@ -132,7 +141,10 @@ public class TimeClientHandle implements Runnable {
 		buffer.put(bytes);
 		buffer.flip();
 		socketChannel.write(buffer);
+		
+		// 对发送结果进行判断
 		if(buffer.hasRemaining()) {
+			// 缓冲区中的消息全部发送完成
 			System.out.println("Send order 2 server succeed");
 		}
 	}
