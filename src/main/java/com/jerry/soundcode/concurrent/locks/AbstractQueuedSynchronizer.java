@@ -12,6 +12,7 @@ import com.jerry.soundcode.list.Collection;
  * 提供了一个基于FIFO队列，可以用于构建锁或者其他相关同步装置的基础框架。
  * 该同步器（以下简称同步器）利用了一个int来表示状态，期望它能够成为实现大部分同步需求的基础。使用的方法是继承，
  * 子类通过继承同步器并需要实现它的方法来管理其状态，管理的方式就是通过类似acquire和release的方式来操纵状态。
+ * AbstractQueuedSynchronizer是CountDownLatch/FutureTask/ReentrantLock/RenntrantReadWriteLock/Semaphore的基础
  */
 public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchronizer implements Serializable {
 
@@ -20,26 +21,36 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 	protected AbstractQueuedSynchronizer() {}
 	
 	static final class Node {
+		
+		// 表示当前的线程被取消
 		static final int CANCELLED = 1;
 		
+		// 表示当前节点的后继节点包含的线程需要运行，也就是unpark
 		static final int SIGNAL = -1;
 		
+		// 表示当前节点在等待condition，也就是在condition队列中
 		static final int CONDITION = -2;
 		
+		// 表示当前场景下后续的acquireShared能够得以执行
 		static final int PROPAGATE = -3;
 		
 		static final Node SHARED = new Node();
 		
 		static final Node EXCLUSIVE = null;
 		
+		// 节点的等待状态，一个节点可能位于以下几种状态
 		volatile int waitStatus;
 		
+		// 前驱节点，比如当前节点被取消，那就需要前驱节点和后继节点来完成连接。
 		volatile Node prev;
 		
+		// 后继节点
 		volatile Node next;
 		
+		// 入队列时的当前线程
 		volatile Thread thread;
 		
+		// 存储condition队列中的后继节点。
 		Node nextWaiter;
 		
 		final boolean isShared() {
@@ -112,6 +123,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 	private Node addWaiter(Node mode) {
 		Node node = new Node(Thread.currentThread(), mode);			
 		
+		// 快速尝试在尾部添加
 		Node pred = tail;
 		if(pred != null) {
 			node.prev = pred;
@@ -417,22 +429,27 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new InterruptedException();
 	}
 	
+	// 排它的获取这个状态。这个方法的实现需要查询当前状态是否允许获取，然后再进行获取（使用compareAndSetState来做）状态。
 	protected boolean tryAcquire(int arg) {
 		throw new UnsupportedOperationException();
 	}
 	
+	// 释放状态
 	protected boolean tryRelease(int arg) {
 		throw new UnsupportedOperationException();
 	}
 	
+	// 共享的模式下获取状态
 	protected int tryAcquireShared(int arg) {
 		throw new UnsupportedOperationException();
 	}
 	
+	// 共享的模式下释放状态
 	protected boolean tryReleaseShared(int arg) {
 		throw new UnsupportedOperationException();
 	}
 	
+	// 在排它模式下，状态是否被占用
 	protected boolean isHeldExclusively() {
 		throw new UnsupportedOperationException();
 	}
