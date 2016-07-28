@@ -53,7 +53,7 @@ public class MultiplexerSocketServer implements Runnable {
 	@Override
 	public void run() {
 		while(!stop) {
-			
+			System.out.println("run....");
 			try {
 				// 多路复用器在线程run方法的无限循环体内轮询准备就绪的Key
 				selector.select(1000);
@@ -77,15 +77,15 @@ public class MultiplexerSocketServer implements Runnable {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
-			// 多路复用器关闭后，所有注册在上面的channel和pipe等资源都会被自动去注册并关闭，
-			// 所以不需要重复释放资源。
-			if(selector != null) {
-				try {
-					selector.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+		}
+		
+		// 多路复用器关闭后，所有注册在上面的channel和pipe等资源都会被自动去注册并关闭，
+		// 所以不需要重复释放资源。
+		if(selector != null) {
+			try {
+				selector.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}

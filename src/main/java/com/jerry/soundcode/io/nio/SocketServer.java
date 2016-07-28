@@ -6,7 +6,7 @@ public class SocketServer {
 	
 	public void startServer() {
 		MultiplexerSocketServer server = new MultiplexerSocketServer(port);
-		new Thread(server, "NIO").start();
+		new Thread(server).start();
 	}
 	
 	public static void main(String[] args) {

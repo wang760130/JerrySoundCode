@@ -7,7 +7,7 @@ public class SocketClient {
 	
 	public void sendServer() {
 		for(;;) {
-			new Thread(new SocketClientHandle(host, port),"nio").start();
+			new Thread(new SocketClientHandle(host, port)).start();
 		}
 	}
 	
