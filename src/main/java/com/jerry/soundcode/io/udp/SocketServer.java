@@ -22,14 +22,14 @@ public class SocketServer {
 			socket.receive(packetReceive);
 			
 			String str = new String(packetReceive.getData(), 0, packetReceive.getLength());
-			System.out.println(str);
+			System.out.println("Accept client data :" + str);
 			
 			// 获取端口号
 			int port = packetReceive.getPort();
 			// 获取IP地址
 			InetAddress addr = packetReceive.getAddress();
 			// 向客户端传输数据
-			byte[] date = "this is server".getBytes();
+			byte[] date = (str + " from server").getBytes();
 			
 			DatagramPacket packetSend = new DatagramPacket(date, date.length, addr, port);
 			socket.send(packetSend);
