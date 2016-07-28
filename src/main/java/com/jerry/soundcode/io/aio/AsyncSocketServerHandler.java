@@ -6,20 +6,16 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 
 import com.jerry.soundcode.thread.CountDownLatch;
 
-public class AsyncTimeServerHandler implements Runnable {
-	
-	private int port;
+public class AsyncSocketServerHandler implements Runnable {
 	
 	CountDownLatch countDownLatch;
 	AsynchronousServerSocketChannel asynchronousServerSocketChannel;
 	
-	public AsyncTimeServerHandler(int port) {
-		this.port = port;
-		
+	public AsyncSocketServerHandler(int port) {
 		try {
 			asynchronousServerSocketChannel = AsynchronousServerSocketChannel.open();
 			asynchronousServerSocketChannel.bind(new InetSocketAddress(port));
-			System.out.println("The time server is start in port : " + port);
+			System.out.println("Server start : " + port);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

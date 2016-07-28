@@ -4,17 +4,17 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 
-public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, AsyncTimeServerHandler> {
+public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, AsyncSocketServerHandler> {
 
 	@Override
-	public void completed(AsynchronousSocketChannel result, AsyncTimeServerHandler attachment) {
+	public void completed(AsynchronousSocketChannel result, AsyncSocketServerHandler attachment) {
 		attachment.asynchronousServerSocketChannel.accept(attachment, this);
 		ByteBuffer buffer = ByteBuffer.allocate(1024);
 		result.read(buffer, buffer, new ReadCompletionHandler(result));
 	}
 
 	@Override
-	public void failed(Throwable exc, AsyncTimeServerHandler attachment) {
+	public void failed(Throwable exc, AsyncSocketServerHandler attachment) {
 		exc.printStackTrace();
 		attachment.countDownLatch.countDown();
 	}

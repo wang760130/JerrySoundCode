@@ -1,10 +1,10 @@
 package com.jerry.soundcode.io.aio;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.Date;
 
 public class ReadCompletionHandler implements CompletionHandler<Integer, ByteBuffer>{
 
@@ -24,10 +24,9 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, ByteBuf
 		attachment.get(body);
 		
 		try {
-			String request = new String(body, "UTF-8");
-			System.out.println("receiveve :" + request);
-			String currentTime = new Date(System.currentTimeMillis()).toString();
-			doWrite(currentTime);
+			String str = new String(body, "UTF-8");
+			System.out.println("Accept client data : " + str);
+			doWrite(str + " from server");
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
@@ -37,18 +36,41 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, ByteBuf
 	private void doWrite(String currentTime) {
 		if(currentTime != null && currentTime.trim().length() > 0) {
 			byte[] bytes = currentTime.getBytes();
-			ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-			buffer.put(bytes);
-			buffer.flip();
+			ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
+			byteBuffer.put(bytes);
+			byteBuffer.flip();
 			
+			channel.write(byteBuffer, byteBuffer, new CompletionHandler<Integer, ByteBuffer>() {
+
+				@Override
+				public void completed(Integer result, ByteBuffer buffer) {
+					// 如果没有发送完成，继续发送
+					if(buffer.hasRemaining()) {
+						channel.write(buffer, buffer, this);
+					}
+				}
+
+				@Override
+				public void failed(Throwable exc, ByteBuffer attachment) {
+					try {
+						channel.close();
+					} catch(IOException e) {
+						e.printStackTrace();
+					}
+				}
+				
+			});
 		}
 		
 	}
 
 	@Override
 	public void failed(Throwable exc, ByteBuffer attachment) {
-		// TODO Auto-generated method stub
-		
+		try {
+			this.channel.close();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
