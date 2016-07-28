@@ -18,7 +18,7 @@ public class SocketClient {
 		try {
 			socket = new DatagramSocket();
 			
-			String str = "Hello! I am client";
+			String str = "This is client message";
 			byte[] data = str.getBytes();
 			
 			InetAddress addr = InetAddress.getByName(host);
@@ -30,7 +30,7 @@ public class SocketClient {
 			DatagramPacket packetReceive = new DatagramPacket(buf, 0, buf.length);
 			socket.receive(packetReceive);
 			String msg = new String(buf, 0, packetReceive.getLength());
-			System.out.println("receive :" + msg);
+			System.out.println("Server return message : " + msg);
 			
 		} catch (SocketException e) {
 			e.printStackTrace();
