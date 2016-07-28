@@ -14,10 +14,10 @@ import java.util.Set;
 /**
  * 多路复用类，独立的线程，负责轮询多路复用器Selctor，可以处理多个客户达un的并发接入
  */
-public class MultiplexerTimeServer implements Runnable {
+public class MultiplexerSocketServer implements Runnable {
 	
-	Selector selector;
-	ServerSocketChannel serverChannel;
+	private Selector selector;
+	private ServerSocketChannel serverChannel;
 	
 	volatile boolean stop;
 	
@@ -25,8 +25,11 @@ public class MultiplexerTimeServer implements Runnable {
 	 * 初始化多路复用器、绑定监听端口
 	 * @param port
 	 */
-	public MultiplexerTimeServer(int port) {
+	public MultiplexerSocketServer(int port) {
 		try {
+			// 创建Reactor线程
+			selector = Selector.open();
+						
 			// 用户监听客户端的连接，是所有客户端连接的父管道
 			serverChannel = ServerSocketChannel.open();
 			
@@ -36,12 +39,10 @@ public class MultiplexerTimeServer implements Runnable {
 			// 设置为非阻塞模式
 			serverChannel.configureBlocking(false);
 			
-			// 创建Reactor线程
-			selector = Selector.open();
-			
 			// 将ServerSocketChannel注册到Reactor线程的多路复用器Seector上，监听ACCEPT事件
 			serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-			System.out.println("The time server is start in port :" + port);
+			
+			System.out.println("Server start : " + port);
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -115,8 +116,8 @@ public class MultiplexerTimeServer implements Runnable {
 					byte[] bytes = new byte[buffer.remaining()];
 					buffer.get(bytes);
 					String body = new String(bytes, "UTF-8");
-					System.out.println("The time server receive order : " + body);
-					this.doWrite(socketChannel, new Date(System.currentTimeMillis()).toString());
+					System.out.println("Accept client data : " + body);
+					this.doWrite(socketChannel, body + " from server");
 				} else if(readBytes < 0) {
 					// 链路已经关闭，需要关闭SocketChannel，释放资源
 					key.cancel();

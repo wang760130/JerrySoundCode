@@ -10,7 +10,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
-public class TimeClientHandle implements Runnable {
+public class SocketClientHandle implements Runnable {
 
 	private String host;
 	private int port;
@@ -19,7 +19,7 @@ public class TimeClientHandle implements Runnable {
 	private SocketChannel socketChannel;
 	private volatile boolean stop;
 	
-	public TimeClientHandle(String host, int port) {
+	public SocketClientHandle(String host, int port) {
 		this.host = host;
 		this.port = port;
 		
@@ -108,7 +108,7 @@ public class TimeClientHandle implements Runnable {
 					byte[] bytes = new byte[readBuffer.remaining()];
 					readBuffer.get(bytes);
 					String body = new String(bytes, "UTF-8");
-					System.out.println("Now is :" + body);
+					System.out.println("Server return message : " + body);
 					this.stop = true;
 				} else if(readBytes < 0) {
 					// 对端链路关闭
@@ -135,8 +135,8 @@ public class TimeClientHandle implements Runnable {
 	}
 	
 	private void doWrite(SocketChannel socketChannel) throws IOException {
-		String order = "query time order";
-		byte[] bytes = order.getBytes();
+		String str = "This is client message";
+		byte[] bytes = str.getBytes();
 		ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
 		buffer.put(bytes);
 		buffer.flip();
