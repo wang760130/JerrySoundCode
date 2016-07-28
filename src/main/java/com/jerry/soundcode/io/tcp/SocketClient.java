@@ -32,7 +32,7 @@ public class SocketClient {
 			pw = new PrintWriter(os);
 			
 			// 向服务器发送消息
-			pw.println("Hello World, this is client message");
+			pw.println("This is client message");
 			pw.flush();
 			
 			// 接收服务器返回的数据
