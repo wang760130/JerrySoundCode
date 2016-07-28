@@ -5,11 +5,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class TimeServerHandlerExceutePool {
+public class SocketServerHandlerExceutePool {
 	
 	private ExecutorService executor;
 	
-	public TimeServerHandlerExceutePool(int maxPoolSize, int queueSize) {
+	public SocketServerHandlerExceutePool(int maxPoolSize, int queueSize) {
 		executor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), 
 				maxPoolSize, 120L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(queueSize));
 	}

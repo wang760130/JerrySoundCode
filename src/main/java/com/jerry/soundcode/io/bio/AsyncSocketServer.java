@@ -8,11 +8,11 @@ import java.net.Socket;
  * 伪异步IO
  * 采用线程池和任务队列实现
  */
-public class AsyncTimeServer {
+public class AsyncSocketServer {
 	
 	int port = 8888;
 	
-	TimeServerHandlerExceutePool executor = new TimeServerHandlerExceutePool(50, 10000);
+	SocketServerHandlerExceutePool executor = new SocketServerHandlerExceutePool(50, 10000);
 	
 	ServerSocket server = null;
 	Socket socket = null;
@@ -23,7 +23,7 @@ public class AsyncTimeServer {
 			server = new ServerSocket(port);
 			while(true) {
 				socket = server.accept();
-				executor.execute(new TimeServerHandler(socket));
+				executor.execute(new SocketServerHandler(socket));
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -38,7 +38,7 @@ public class AsyncTimeServer {
 	}
 	
 	public static void main(String[] args) {
-		AsyncTimeServer server = new AsyncTimeServer();
+		AsyncSocketServer server = new AsyncSocketServer();
 		server.startServer();
 	}
 	

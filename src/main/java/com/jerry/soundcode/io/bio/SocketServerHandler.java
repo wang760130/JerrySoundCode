@@ -7,13 +7,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Date;
 
-public class TimeServerHandler implements Runnable {
+public class SocketServerHandler implements Runnable {
 
 	private Socket socket;
 	
-	public TimeServerHandler(Socket socket) {
+	public SocketServerHandler(Socket socket) {
 		this.socket = socket;
 	}
 	
@@ -29,17 +28,22 @@ public class TimeServerHandler implements Runnable {
 			is = this.socket.getInputStream();
 			reader = new InputStreamReader(is);
 			in = new BufferedReader(reader);
+			
 			os = this.socket.getOutputStream();
 			pw = new PrintWriter(os, true);
 			
-			String body = null;
+			String line = null;
 			while(true) {
-				body = in.readLine();
-				if(body == null) {
+				line = in.readLine();
+				
+				if(line == null) {
 					break;
 				}
-				System.out.println("The time server receive order : " + body);
-				pw.println(new Date(System.currentTimeMillis()).toString());
+				
+				System.out.println("Accept client data : " + line);
+				
+				pw.println(line + " from server");
+				pw.flush();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

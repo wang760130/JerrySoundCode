@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class TimeClient {
+public class SocketClient {
 	
 	int port = 8888;
 	String host  = "localhost";
@@ -17,28 +17,36 @@ public class TimeClient {
 		Socket socket = null;
 		InputStream is = null;
 		InputStreamReader reader = null;
-		BufferedReader br = null;
+		BufferedReader buffer = null;
 		OutputStream os = null;
 		PrintWriter pw = null;
 		try {
 			
+			// 创建Socket对象（并连接服务器）
 			socket = new Socket(host, port);
-			is = socket.getInputStream();
-			reader = new InputStreamReader(is);
-			br = new BufferedReader(reader);
-		
+			
+			// 调用getOutputStream方法，进行I/O
 			os = socket.getOutputStream();
 			pw = new PrintWriter(os, true);
-			pw.println("time");
-			String line = br.readLine();
-			System.out.println("Now is " + line);
+			
+			pw.println("This is client message");
+			pw.flush();
+			
+			// 接收服务器返回的数据
+			is = socket.getInputStream();
+			reader = new InputStreamReader(is);
+			buffer = new BufferedReader(reader);
+		
+			String line = buffer.readLine();
+			System.out.println("Server return message : " + line);
+
 		} catch(Exception e) {
 			e.printStackTrace();
 		} finally {
 			try {
 				pw.close();
 				os.close();
-				br.close();
+				buffer.close();
 				reader.close();
 				is.close();
 				socket.close();
@@ -50,7 +58,7 @@ public class TimeClient {
 	}
 	
 	public static void main(String[] args) {
-		TimeClient client = new TimeClient();
+		SocketClient client = new SocketClient();
 		client.sendServer();
 	}
 	
