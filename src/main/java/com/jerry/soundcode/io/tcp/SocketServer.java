@@ -37,9 +37,8 @@ public class SocketServer {
 				buffer = new BufferedReader(reader);
 				
 				// 输出客户端传过来的数据
-				System.out.println("Accept client data : ");
 				String line = buffer.readLine();
-				System.out.println(line);
+				System.out.println("Accept client data : " + line);
 				
 				// 给客户端传输数据
 				os = socket.getOutputStream();
