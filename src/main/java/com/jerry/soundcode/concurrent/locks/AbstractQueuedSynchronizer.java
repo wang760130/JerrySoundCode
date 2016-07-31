@@ -20,6 +20,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 
 	protected AbstractQueuedSynchronizer() {}
 	
+	// 保存着线程引用和线程状态的容器
 	static final class Node {
 		
 		// 表示当前的线程被取消
@@ -120,6 +121,25 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		}
 	}
 	
+	/**
+	 * 1. 使用当前线程构造Node；
+	 * 对于一个节点需要做的是将当节点前驱节点指向尾节点（current.prev = tail），尾节点指向它（tail = current），
+	 * 原有的尾节点的后继节点指向它（t.next = current）而这些操作要求是原子的。上面的操作是利用尾节点的设置来保证的，也就是compareAndSetTail来完成的。
+	 * 2. 先行尝试在队尾添加；
+	 * 如果尾节点已经有了，然后做如下操作：
+	 * (1)分配引用T指向尾节点；
+	 * (2)将节点的前驱节点更新为尾节点（current.prev = tail）；
+	 * (3)如果尾节点是T，那么将当尾节点设置为该节点（tail = current，原子更新）；
+	 * (4)T的后继节点指向当前节点（T.next = current）。
+	 * 注意第3点是要求原子的。
+	 * 这样可以以最短路径O(1)的效果来完成线程入队，是最大化减少开销的一种方式。
+	 * 3. 如果队尾添加失败或者是第一个入队的节点。
+	 * 如果是第1个节点，也就是sync队列没有初始化，那么会进入到enq这个方法，进入的线程可能有多个，或者说在addWaiter中没有成功入队的线程都将进入enq这个方法。
+	 * 可以看到enq的逻辑是确保进入的Node都会有机会顺序的添加到sync队列中，而加入的步骤如下：
+	 * (1)如果尾节点为空，那么原子化的分配一个头节点，并将尾节点指向头节点，这一步是初始化；
+	 * (2)然后是重复在addWaiter中做的工作，但是在一个while(true)的循环中，直到当前节点入队为止。
+	 * 进入sync队列之后，接下来就是要进行锁的获取，或者说是访问控制了，只有一个线程能够在同一时刻继续的运行，而其他的进入等待状态。而每个线程都是一个独立的个体，它们自省的观察，当条件满足的时候（自己的前驱是头结点并且原子性的获取了状态），那么这个线程能够继续运行。
+	 */
 	private Node addWaiter(Node mode) {
 		Node node = new Node(Thread.currentThread(), mode);			
 		
@@ -142,6 +162,13 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		node.prev = null;
 	}
 	
+	/**
+	 * 该方法取出了当前节点的next引用，然后对其线程(Node)进行了唤醒，这时就只有一个或合理个数的线程被唤醒，被唤醒的线程继续进行对资源的获取与争夺。
+	 * 回顾整个资源的获取和释放过程：
+	 * 在获取时，维护了一个sync队列，每个节点都是一个线程在进行自旋，而依据就是自己是否是首节点的后继并且能够获取资源；
+	 * 在释放时，仅仅需要将资源还回去，然后通知一下后继节点并将其唤醒。
+	 * 这里需要注意，队列的维护（首节点的更换）是依靠消费者（获取时）来完成的，也就是说在满足了自旋退出的条件时的一刻，这个节点就会被设置成为首节点。
+	 */
 	private void unparkSuccessor(Node node) {
 		int ws = node.waitStatus;
 		if(ws < 0) {
@@ -256,6 +283,22 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return Thread.interrupted();
 	}
 	
+	/**
+	 * 1. 获取当前节点的前驱节点；
+	 * 需要获取当前节点的前驱节点，而头结点所对应的含义是当前站有锁且正在运行。
+	 * 2. 当前驱节点是头结点并且能够获取状态，代表该当前节点占有锁；
+	 * 如果满足上述条件，那么代表能够占有锁，根据节点对锁占有的含义，设置头结点为当前节点。
+	 * 3. 否则进入等待状态。
+	 * 如果没有轮到当前节点运行，那么将当前线程从线程调度器上摘下，也就是进入等待状态。
+	 * 这里针对acquire做一下总结：
+	 * 1. 状态的维护；
+	 * 需要在锁定时，需要维护一个状态(int类型)，而对状态的操作是原子和非阻塞的，通过同步器提供的对状态访问的方法对状态进行操纵，并且利用compareAndSet来确保原子性的修改。
+	 * 2. 状态的获取；
+	 * 一旦成功的修改了状态，当前线程或者说节点，就被设置为头节点。
+	 * 3. sync队列的维护。
+	 * 在获取资源未果的过程中条件不符合的情况下(不该自己，前驱节点不是头节点或者没有获取到资源)进入睡眠状态，停止线程调度器对当前节点线程的调度。
+	 * 这时引入的一个释放的问题，也就是说使睡眠中的Node或者说线程获得通知的关键，就是前驱节点的通知，而这一个过程就是释放，释放会通知它的后继节点从睡眠中返回准备运行。
+	 */
 	final boolean acquireQueued(final Node node, int arg) {
 		try {
 			boolean interrupted = false;
@@ -434,7 +477,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new UnsupportedOperationException();
 	}
 	
-	// 释放状态
+	// 释放锁，将状态设置为0
 	protected boolean tryRelease(int arg) {
 		throw new UnsupportedOperationException();
 	}
@@ -454,9 +497,16 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new UnsupportedOperationException();
 	}
 	
+	/**
+	 * 1. 尝试获取（调用tryAcquire更改状态，需要保证原子性）；
+	 * 在tryAcquire方法中使用了同步器提供的对state操作的方法，利用compareAndSet保证只有一个线程能够对状态进行成功修改，而没有成功修改的线程将进入sync队列排队。
+	 * 2. 如果获取不到，将当前线程构造成节点Node并加入sync队列；
+	 * 进入队列的每个线程都是一个节点Node，从而形成了一个双向队列，类似CLH队列，这样做的目的是线程间的通信会被限制在较小规模（也就是两个节点左右）。
+	 * 3. 再次尝试获取，如果没有获取到那么将当前线程从线程调度器上摘下，进入等待状态。
+	 */
 	public final void acquire(int arg) {
-		if(!tryAcquire(arg) && 
-				acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
+		if(!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
+			// 尝试获取（调用tryAcquire更改状态，需要保证原子性）
 			selfInterrupt();
 		}
 	}
@@ -477,6 +527,15 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return tryAcquire(arg) || doAcquireNanos(arg, nanosTimeout);
 	}
 	
+	/**
+	 * 在unlock方法的实现中，使用了同步器的release方法。相对于在之前的acquire方法中可以得出调用acquire，
+	 * 保证能够获取到锁（成功获取状态），而release则表示将状态设置回去，也就是将资源释放，或者说将锁释放。
+	 * 
+	 * 1. 尝试释放状态；
+	 * tryRelease能够保证原子化的将状态设置回去，当然需要使用compareAndSet来保证。如果释放状态成功过之后，将会进入后继节点的唤醒过程。
+	 * 2. 唤醒当前节点的后继节点所包含的线程。
+	 * 通过LockSupport的unpark方法将休眠中的线程唤醒，让其继续acquire状态
+	 */
 	public final boolean release(int arg) {
 		if(tryRelease(arg)) {
 			Node h = head;
@@ -494,6 +553,16 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		 }
 	}
 	
+	/**
+	 * 该方法提供获取状态能力，当然在无法获取状态的情况下会进入sync队列进行排队，这类似acquire，
+	 * 但是和acquire不同的地方在于它能够在外界对当前线程进行中断的时候提前结束获取状态的操作，
+	 * 换句话说，就是在类似synchronized获取锁时，外界能够对当前线程进行中断，并且获取锁的这个操作能够响应中断并提前返回。
+	 * 一个线程处于synchronized块中或者进行同步I/O操作时，对该线程进行中断操作，这时该线程的中断标识位被设置为true，但是线程依旧继续运行。
+	 * 如果在获取一个通过网络交互实现的锁时，这个锁资源突然进行了销毁，
+	 * 那么使用acquireInterruptibly的获取方式就能够让该时刻尝试获取锁的线程提前返回。
+	 * 而同步器的这个特性被实现Lock接口中的lockInterruptibly方法。
+	 * 根据Lock的语义，在被中断时，lockInterruptibly将会抛出InterruptedException来告知使用者。
+	 */
 	public final void acquireSharedInterruptibly(int arg) throws InterruptedException {
 		if(Thread.interrupted()) {
 			throw new InterruptedException();
