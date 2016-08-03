@@ -84,6 +84,7 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 	
 	private transient volatile Node tail;
 	
+	// 共享资源
 	private volatile int state;
 	
 	protected final int getState() {
