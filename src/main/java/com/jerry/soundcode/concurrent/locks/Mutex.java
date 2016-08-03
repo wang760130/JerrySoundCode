@@ -23,24 +23,32 @@ public class Mutex implements Lock, Serializable {
 			return getState() == 1;
 		}
 		
-		// // 当状态为0的时候获取锁
+		// 尝试获取资源，立即返回。成功则返回true，否则false。
 		@Override
 		protected boolean tryAcquire(int acquires) {
+			// 这里限定只能为1个量
 			assert acquires == 1;
+			// state为0才设置为1，不可重入！
 			if(compareAndSetState(0, 1)) {
+				// 设置为当前线程独占资源
 				setExclusiveOwnerThread(Thread.currentThread());
 				return true;
 			}
 			return false;
 		}
 
+		// 尝试释放资源，立即返回。成功则为true，否则false。
 		@Override
 		protected boolean tryRelease(int releases) {
+			// 限定为1个量
 			assert releases == 1;
+			
 			if(getState() == 0) {
+				// 既然来释放，那肯定就是已占有状态了。只是为了保险，多层判断！
 				throw new IllegalMonitorStateException();
 			}
 			setExclusiveOwnerThread(null);
+			// 释放资源，放弃占有状态
 			setState(0);
 			return true;
 		}
@@ -61,18 +69,22 @@ public class Mutex implements Lock, Serializable {
 	}
 	
 	// 仅需要将操作代理到Sync上即可
+	// 真正同步类的实现都依赖继承于AQS的自定义同步器！
 	private final Sync sync = new Sync();
 	
+	// lock<-->acquire。两者语义一样：获取资源，即便等待，直到成功才返回。
 	@Override
 	public void lock() {
 		sync.acquire(1);
 	}
 
+	// tryLock<-->tryAcquire。两者语义一样：尝试获取资源，要求立即返回。成功则为true，失败则为fa
 	@Override
 	public boolean tryLock() {
 		return sync.tryAcquire(1);
 	}
 	
+	// unlock<-->release。两者语文一样：释放资源。
 	@Override
 	public void unlock() {
 		sync.release(1);
@@ -83,6 +95,7 @@ public class Mutex implements Lock, Serializable {
 		return sync.newCondition();
 	} 
 	
+	// 锁是否占有状态
 	public boolean isLocked() {
 		return sync.isHeldExclusively();
 	}
