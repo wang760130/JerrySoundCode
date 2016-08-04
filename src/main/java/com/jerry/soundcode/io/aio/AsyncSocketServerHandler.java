@@ -22,6 +22,7 @@ public class AsyncSocketServerHandler implements Runnable {
 	
 	@Override
 	public void run() {
+		// 作用是在完成一组正在执行的操作之前，允许当前的线程一直阻塞
 		countDownLatch = new CountDownLatch(1);
 		doAccept();
 		try {
