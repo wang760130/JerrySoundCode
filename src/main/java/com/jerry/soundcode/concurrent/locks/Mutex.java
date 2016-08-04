@@ -1,4 +1,4 @@
-package com.jerry.soundcode.concurrent.locks;
+	package com.jerry.soundcode.concurrent.locks;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -106,7 +106,7 @@ public class Mutex implements Lock, Serializable {
 	
 	@Override
 	public void lockInterruptibly() throws InterruptedException {
-		sync.acquireInterrutibly(1);
+		sync.acquireInterruptibly(1);
 	}
 
 	@Override
