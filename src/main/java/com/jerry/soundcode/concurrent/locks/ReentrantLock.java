@@ -136,7 +136,7 @@ public class ReentrantLock implements Serializable {
 	}
 	
 	public void lockInterruptibly() throws InterruptedException {
-		sync.acquireInterrutibly(1);
+		sync.acquireInterruptibly(1);
 	}
 	
 	public boolean tryLock() {
