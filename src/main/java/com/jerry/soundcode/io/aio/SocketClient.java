@@ -3,7 +3,7 @@ package com.jerry.soundcode.io.aio;
 public class SocketClient {
 	
 	String host = "localhost";
-	int port = 8080;
+	int port = 8888;
 	
 	public void sendServer() {
 	    new Thread(new AsyncSocketClientHandler(host, port), "AIOClient").start();
