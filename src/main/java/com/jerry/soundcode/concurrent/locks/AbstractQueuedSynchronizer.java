@@ -9,6 +9,12 @@ import com.jerry.soundcode.list.ArrayList;
 import com.jerry.soundcode.list.Collection;
 
 /**
+ * AbstractQueuedSynchronizer的介绍和原理分析
+ * http://ifeve.com/introduce-abstractqueuedsynchronizer/
+ * 
+ * AQS详解
+ * http://www.knowsky.com/889526.html
+ * 
  * 提供了一个基于FIFO队列，可以用于构建锁或者其他相关同步装置的基础框架。
  * 该同步器（以下简称同步器）利用了一个int来表示状态，期望它能够成为实现大部分同步需求的基础。使用的方法是继承，
  * 子类通过继承同步器并需要实现它的方法来管理其状态，管理的方式就是通过类似acquire和release的方式来操纵状态。
@@ -139,7 +145,8 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 	 * 可以看到enq的逻辑是确保进入的Node都会有机会顺序的添加到sync队列中，而加入的步骤如下：
 	 * (1)如果尾节点为空，那么原子化的分配一个头节点，并将尾节点指向头节点，这一步是初始化；
 	 * (2)然后是重复在addWaiter中做的工作，但是在一个while(true)的循环中，直到当前节点入队为止。
-	 * 进入sync队列之后，接下来就是要进行锁的获取，或者说是访问控制了，只有一个线程能够在同一时刻继续的运行，而其他的进入等待状态。而每个线程都是一个独立的个体，它们自省的观察，当条件满足的时候（自己的前驱是头结点并且原子性的获取了状态），那么这个线程能够继续运行。
+	 * 进入sync队列之后，接下来就是要进行锁的获取，或者说是访问控制了，只有一个线程能够在同一时刻继续的运行，而其他的进入等待状态。
+	 * 而每个线程都是一个独立的个体，它们自省的观察，当条件满足的时候（自己的前驱是头结点并且原子性的获取了状态），那么这个线程能够继续运行。
 	 */
 	private Node addWaiter(Node mode) {
 		Node node = new Node(Thread.currentThread(), mode);			
@@ -171,8 +178,11 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 	 * 这里需要注意，队列的维护（首节点的更换）是依靠消费者（获取时）来完成的，也就是说在满足了自旋退出的条件时的一刻，这个节点就会被设置成为首节点。
 	 */
 	private void unparkSuccessor(Node node) {
+		// 将状态设置为同步状态
 		int ws = node.waitStatus;
 		if(ws < 0) {
+			// 获取当前节点的后继节点，如果满足状态，那么进行唤醒操作  
+			// 如果没有满足状态，从尾部开始找寻符合要求的节点并将其唤醒
 			compareAndSetWaitStatus(node, ws, 0);
 		}
 		
@@ -347,6 +357,29 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		throw new InterruptedException();
 	}
 	
+	/**
+	 * 
+	 * 1. 加入sync队列；
+	 * 将当前线程构造成为节点Node加入到sync队列中。
+	 * 2. 条件满足直接返回；
+	 * 退出条件判断，如果前驱节点是头结点并且成功获取到状态，那么设置自己为头结点并退出，返回true，也就是在指定的nanosTimeout之前获取了锁。
+	 * 3. 获取状态失败休眠一段时间；
+	 * 通过LockSupport.unpark来指定当前线程休眠一段时间。
+	 * 4. 计算再次休眠的时间；
+	 * 唤醒后的线程，计算仍需要休眠的时间，该时间表示为nanosTimeout = 原有nanosTimeout – now（当前时间）+ lastTime（睡眠之前记录的时间）。
+	 * 其中now – lastTime表示这次睡眠所持续的时间。
+	 * 5. 休眠时间的判定。
+	 * 唤醒后的线程，计算仍需要休眠的时间，并无阻塞的尝试再获取状态，如果失败后查看其nanosTimeout是否大于0，如果小于0，那么返回完全超时，没有获取到锁。 
+	 * 如果nanosTimeout小于等于1000L纳秒，则进入快速的自旋过程。那么快速自旋会造成处理器资源紧张吗？结果是不会，经过测算，开销看起来很小，
+	 * 几乎微乎其微。Doug Lea应该测算了在线程调度器上的切换造成的额外开销，因此在短时1000纳秒内就让当前线程进入快速自旋状态，
+	 * 如果这时再休眠相反会让nanosTimeout的获取时间变得更加不精确。
+	 * 
+	 * 方法提供了具备有超时功能的获取状态的调用，如果在指定的nanosTimeout内没有获取到状态，
+	 * 那么返回false，反之返回true。可以将该方法看做acquireInterruptibly的升级版，也就是在判断是否被中断的基础上增加了超时控制。
+	 * 针对超时控制这部分的实现，主要需要计算出睡眠的delta，也就是间隔值。
+	 * 间隔可以表示为nanosTimeout = 原有nanosTimeout – now（当前时间）+ lastTime（睡眠之前记录的时间）。
+	 * 如果nanosTimeout大于0，那么还需要使当前线程睡眠，反之则返回false。
+	 */
 	private boolean doAcquireNanos(int arg, long nanosTimeout) throws InterruptedException {
 		long lastTime = System.nanoTime();
 		final Node node = addWaiter(Node.EXCLUSIVE);
@@ -512,7 +545,28 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		}
 	}
 	
-	public final void acquireInterrutibly(int arg) throws InterruptedException {
+	/**
+	 * 1. 检测当前线程是否被中断；
+	 * 判断当前线程的中断标志位，如果已经被中断了，那么直接抛出异常并将中断标志位设置为false。
+	 * 2. 尝试获取状态；
+	 * 调用tryAcquire获取状态，如果顺利会获取成功并返回。
+	 * 3. 构造节点并加入sync队列；
+	 * 获取状态失败后，将当前线程引用构造为节点并加入到sync队列中。退出队列的方式在没有中断的场景下和acquireQueued类似，
+	 * 当头结点是自己的前驱节点并且能够获取到状态时，即可以运行，当然要将本节点设置为头结点，表示正在运行。
+	 * 4. 中断检测。
+	 * 在每次被唤醒时，进行中断检测，如果发现当前线程被中断，那么抛出InterruptedException并退出循环。
+	 * 
+	 * 
+	 * 提供获取状态能力，当然在无法获取状态的情况下会进入sync队列进行排队，这类似acquire，
+	 * 但是和acquire不同的地方在于它能够在外界对当前线程进行中断的时候提前结束获取状态的操作，
+	 * 换句话说，就是在类似synchronized获取锁时，外界能够对当前线程进行中断，并且获取锁的这个操作能够响应中断并提前返回。
+	 * 一个线程处于synchronized块中或者进行同步I/O操作时，对该线程进行中断操作，这时该线程的中断标识位被设置为true，但是线程依旧继续运行。
+	 * 如果在获取一个通过网络交互实现的锁时，这个锁资源突然进行了销毁，
+	 * 那么使用acquireInterruptibly的获取方式就能够让该时刻尝试获取锁的线程提前返回。
+	 * 而同步器的这个特性被实现Lock接口中的lockInterruptibly方法。根据Lock的语义，在被中断时，
+	 * lockInterruptibly将会抛出InterruptedException来告知使用者。
+	 */
+	public final void acquireInterruptibly(int arg) throws InterruptedException {
 		if(Thread.interrupted())
 			throw new InterruptedException();
 		if(!tryAcquire(arg)) {
@@ -548,6 +602,23 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return false;
 	}
 	
+	/**
+	 * 1. 尝试获取共享状态；
+	 * 调用tryAcquireShared来获取共享状态，该方法是非阻塞的，如果获取成功则立刻返回，也就表示获取共享锁成功。
+	 * 2. 获取失败进入sync队列；
+	 * 在获取共享状态失败后，当前时刻有可能是独占锁被其他线程所把持，那么将当前线程构造成为节点（共享模式）加入到sync队列中。
+	 * 3. 循环内判断退出队列条件；
+	 * 如果当前节点的前驱节点是头结点并且获取共享状态成功，这里和独占锁acquire的退出队列条件类似。
+	 * 4. 获取共享状态成功；
+	 * 在退出队列的条件上，和独占锁之间的主要区别在于获取共享状态成功之后的行为，而如果共享状态获取成功之后会判断后继节点是否是共享模式，
+	 * 如果是共享模式，那么就直接对其进行唤醒操作，也就是同时激发多个线程并发的运行。
+	 * 5. 获取共享状态失败。
+	 * 通过使用LockSupport将当前线程从线程调度器上摘下，进入休眠状态。
+	 * 
+	 * 调用该方法能够以共享模式获取状态，共享模式和之前的独占模式有所区别。
+	 * 以文件的查看为例，如果一个程序在对其进行读取操作，那么这一时刻，对这个文件的写操作就被阻塞，
+	 * 相反，这一时刻另一个程序对其进行同样的读操作是可以进行的。如果一个程序在对其进行写操作，那么所有的读与写操作在这一时刻就被阻塞，直到这个程序完成写操作。
+	 */
 	public final void acquireShared(int arg) {
 		 if (tryAcquireShared(arg) < 0) {
 			 doAcquireShared(arg);
@@ -581,6 +652,11 @@ public abstract class AbstractQueuedSynchronizer extends AbstractOwnableSynchron
 		return tryAcquireShared(arg) >= 0 || doAcquireSharedNanos(arg, nanosTimeout);
 	}
 	
+	/**
+	 * 调用该方法释放共享状态，每次获取共享状态acquireShared都会操作状态，同样在共享锁释放的时候，也需要将状态释放。
+	 * 比如说，一个限定一定数量访问的同步工具，每次获取都是共享的，但是如果超过了一定的数量，将会阻塞后续的获取操作，
+	 * 只有当之前获取的消费者将状态释放才可以使阻塞的获取操作得以运行。
+	 */
 	public final boolean releaseShared(int arg) {
 		if(tryReleaseShared(arg)) {
 			doReleaseShared();
