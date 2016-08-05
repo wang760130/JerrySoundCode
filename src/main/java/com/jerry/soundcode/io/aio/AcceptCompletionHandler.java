@@ -15,7 +15,7 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 
 	@Override
 	public void failed(Throwable exc, AsyncSocketServerHandler attachment) {
-		exc.printStackTrace();
+		exc.printStackTrace(); 
 		attachment.countDownLatch.countDown();
 	}
 
